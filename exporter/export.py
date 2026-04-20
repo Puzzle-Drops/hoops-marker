@@ -702,7 +702,7 @@ def make_final_screen(teams: Dict, score: Dict[int, int],
     league = (teams_registry or {}).get('league') or {}
     league_bottom_y = int(h * 0.04)
     if league.get('logo_abs'):
-        league_logo = load_logo(league['logo_abs'], int(h * 0.10))
+        league_logo = load_logo(league['logo_abs'], int(h * 0.15))
         if league_logo is not None:
             lx = (w - league_logo.size[0]) // 2
             img.paste(league_logo, (lx, int(h * 0.04)), league_logo)
@@ -896,7 +896,7 @@ def make_pre_game_screen(teams: Dict, duration: float,
     league = (teams_registry or {}).get('league') or {}
     league_bottom_y = int(h * 0.04)
     if league.get('logo_abs'):
-        league_logo = load_logo(league['logo_abs'], int(h * 0.10))
+        league_logo = load_logo(league['logo_abs'], int(h * 0.15))
         if league_logo is not None:
             lx = (w - league_logo.size[0]) // 2
             img.paste(league_logo, (lx, int(h * 0.04)), league_logo)
