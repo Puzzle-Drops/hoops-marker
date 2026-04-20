@@ -26,8 +26,8 @@
   button:active, .btn:active { transform: translateY(1px); }
   button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
   button.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
-  input[type="text"], input[type="number"], input[type="url"] { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); padding: 7px 10px; border-radius: var(--radius-sm); font-size: 13px; font-family: inherit; outline: none; transition: border-color 0.12s; }
-  input[type="text"]:focus, input[type="number"]:focus, input[type="url"]:focus { border-color: var(--accent); }
+  input[type="text"], input[type="number"], input[type="url"], select { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); padding: 7px 10px; border-radius: var(--radius-sm); font-size: 13px; font-family: inherit; outline: none; transition: border-color 0.12s; }
+  input[type="text"]:focus, input[type="number"]:focus, input[type="url"]:focus, select:focus { border-color: var(--accent); }
   input[type="number"] { width: 70px; }
   input[type="color"] { width: 32px; height: 28px; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; background: none; padding: 2px; }
   label.toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; font-size: 13px; color: var(--text-dim); }
@@ -50,6 +50,8 @@
   .score-bug .team-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 12px; color: #fff; font-weight: 700; font-size: 15px; letter-spacing: 0.5px; min-width: 160px; text-shadow: 0 1px 2px rgba(0,0,0,0.3); transition: transform 0.2s; }
   .score-bug .team-row.pulse { animation: scorePulse 0.5s ease-out; }
   @keyframes scorePulse { 0% { transform: scale(1); } 30% { transform: scale(1.08); filter: brightness(1.3); } 100% { transform: scale(1); filter: brightness(1); } }
+  .score-bug .team-logo { height: 24px; width: auto; max-width: 36px; margin-right: 8px; flex-shrink: 0; display: none; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4)); }
+  .score-bug .team-logo.visible { display: inline-block; }
   .score-bug .team-name { flex: 1; }
   .score-bug .team-score { font-family: var(--mono); font-size: 17px; font-weight: 800; margin-left: 14px; min-width: 24px; text-align: right; }
   .final-score { position: absolute; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); }
@@ -90,6 +92,9 @@
   .team-config .label { font-size: 11px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.5px; width: 60px; }
   .team-config input[type="text"] { flex: 1; }
   .team-preview { height: 28px; border-radius: var(--radius-sm); font-size: 12px; color: white; font-weight: 600; display: flex; align-items: center; justify-content: center; text-shadow: 0 1px 2px rgba(0,0,0,0.3); flex: 1; }
+  .team-preset-select { flex: 1; cursor: pointer; }
+  .team-logo-thumb { width: 28px; height: 28px; object-fit: contain; background: var(--panel-3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 3px; display: none; flex-shrink: 0; }
+  .team-logo-thumb.visible { display: inline-block; }
   .setting-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 9px; }
   .setting-row:last-child { margin-bottom: 0; }
   .setting-row label { font-size: 13px; color: var(--text-dim); flex: 1; }
@@ -114,6 +119,21 @@
   .toast .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
   @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
   .selection-hint { position: absolute; top: 12px; right: 12px; background: rgba(255,120,73,0.15); border: 1px solid var(--accent); color: var(--accent); padding: 5px 10px; border-radius: var(--radius-sm); font-size: 11px; font-family: var(--mono); backdrop-filter: blur(8px); z-index: 15; pointer-events: none; }
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2000; display: flex; align-items: center; justify-content: center; animation: modalIn 0.15s ease-out; }
+  @keyframes modalIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal-card { background: var(--panel); border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 20px 22px; max-width: 440px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.55); }
+  .modal-card h3 { font-size: 15px; margin-bottom: 6px; font-weight: 600; }
+  .modal-card .modal-sub { font-size: 12px; color: var(--text-dim); margin-bottom: 14px; }
+  .modal-card .modal-body { margin-bottom: 16px; }
+  .modal-card .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .modal-option { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 6px; cursor: pointer; transition: background 0.1s, border-color 0.1s; }
+  .modal-option:hover { background: var(--panel-2); }
+  .modal-option.disabled { opacity: 0.45; cursor: not-allowed; }
+  .modal-option.disabled:hover { background: transparent; }
+  .modal-option input { margin-top: 3px; accent-color: var(--accent); flex-shrink: 0; }
+  .modal-option .opt-body { flex: 1; }
+  .modal-option .opt-label { font-weight: 500; font-size: 13px; color: var(--text); }
+  .modal-option .opt-hint { font-size: 11px; color: var(--text-dim); margin-top: 3px; line-height: 1.4; }
   ::-webkit-scrollbar { width: 8px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
@@ -145,8 +165,8 @@
       <video id="localVideo" class="hidden"></video>
       <div id="youtubePlayer" class="hidden"></div>
       <div class="score-bug pos-top-left hidden" id="scoreBug">
-        <div class="team-row" id="team1Row"><span class="team-name" id="team1Name">TEAM 1</span><span class="team-score" id="team1Score">0</span></div>
-        <div class="team-row" id="team2Row"><span class="team-name" id="team2Name">TEAM 2</span><span class="team-score" id="team2Score">0</span></div>
+        <div class="team-row" id="team1Row"><img class="team-logo" id="team1LogoBug" alt=""><span class="team-name" id="team1Name">TEAM 1</span><span class="team-score" id="team1Score">0</span></div>
+        <div class="team-row" id="team2Row"><img class="team-logo" id="team2LogoBug" alt=""><span class="team-name" id="team2Name">TEAM 2</span><span class="team-score" id="team2Score">0</span></div>
       </div>
       <div class="final-score hidden" id="finalScore">
         <div class="final-score-content">
@@ -189,12 +209,14 @@
     <div class="panel">
       <h2>Teams</h2>
       <div class="team-config">
-        <div class="row"><span class="label">Team 1</span><input type="text" id="team1NameInput" value="Team 1" maxlength="24"></div>
+        <div class="row"><span class="label">Team 1</span><input type="text" id="team1NameInput" value="Team 1" maxlength="24" placeholder="Type team name…"></div>
+        <div class="row"><select id="team1Preset" class="team-preset-select"><option value="">— Custom team —</option></select><img id="team1LogoThumb" class="team-logo-thumb" alt=""></div>
         <div class="row"><input type="color" id="team1Color1" value="#E03A3E"><input type="color" id="team1Color2" value="#8B0000"><div class="team-preview" id="team1Preview">TEAM 1</div></div>
         <div class="row"><label class="toggle"><input type="checkbox" id="team1Gradient" checked> Gradient</label></div>
       </div>
       <div class="team-config">
-        <div class="row"><span class="label">Team 2</span><input type="text" id="team2NameInput" value="Team 2" maxlength="24"></div>
+        <div class="row"><span class="label">Team 2</span><input type="text" id="team2NameInput" value="Team 2" maxlength="24" placeholder="Type team name…"></div>
+        <div class="row"><select id="team2Preset" class="team-preset-select"><option value="">— Custom team —</option></select><img id="team2LogoThumb" class="team-logo-thumb" alt=""></div>
         <div class="row"><input type="color" id="team2Color1" value="#007A33"><input type="color" id="team2Color2" value="#004D20"><div class="team-preview" id="team2Preview">TEAM 2</div></div>
         <div class="row"><label class="toggle"><input type="checkbox" id="team2Gradient" checked> Gradient</label></div>
       </div>
@@ -222,19 +244,58 @@
     </div>
   </aside>
 </main>
+
+<div class="modal-backdrop hidden" id="importModal">
+  <div class="modal-card">
+    <h3>Import from JSON</h3>
+    <div class="modal-sub" id="importModalSummary">Choose which parts of the file to apply. Unchecked sections will keep your current values.</div>
+    <div class="modal-body">
+      <label class="modal-option" id="optTeamsWrap">
+        <input type="checkbox" id="optTeams" checked>
+        <div class="opt-body">
+          <div class="opt-label" id="optTeamsLabel">Teams</div>
+          <div class="opt-hint">Names, colors, preset associations, gradient toggles.</div>
+        </div>
+      </label>
+      <label class="modal-option" id="optConfigWrap">
+        <input type="checkbox" id="optConfig" checked>
+        <div class="opt-body">
+          <div class="opt-label">Clip settings</div>
+          <div class="opt-hint">Pre-roll, post-roll, final-screen duration, score bug position.</div>
+        </div>
+      </label>
+      <label class="modal-option" id="optMarksWrap">
+        <input type="checkbox" id="optMarks" checked>
+        <div class="opt-body">
+          <div class="opt-label" id="optMarksLabel">Markers</div>
+          <div class="opt-hint">Scoring moments and non-scoring markers from the file. Replaces your current list.</div>
+        </div>
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button onclick="hideImportDialog()">Cancel</button>
+      <button onclick="applyImport()" class="primary">Import selected</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const state = {
   mode: null, videoId: null, duration: 0, currentTime: 0, isPlaying: false,
   ytPlayer: null, ytReady: false,
   teams: {
-    1: { name: 'Team 1', color1: '#E03A3E', color2: '#8B0000', gradient: true },
-    2: { name: 'Team 2', color1: '#007A33', color2: '#004D20', gradient: true }
+    1: { name: 'Team 1', color1: '#E03A3E', color2: '#8B0000', gradient: true, teamId: null, logo: null },
+    2: { name: 'Team 2', color1: '#007A33', color2: '#004D20', gradient: true, teamId: null, logo: null }
   },
   config: { preRoll: 4, postRoll: 1, finalDuration: 3, skipAmount: 5, nudgeStep: 0.1, bugPosition: 'top-left' },
   marks: [], selectedMarkId: null, previewingFinal: false,
   displayedScore: { 1: 0, 2: 0 }
 };
 let markIdCounter = 1;
+let teamsRegistry = null;
+let teamsRegistryBase = 'assets/';  // path prefix relative to index.html
+let pendingImport = null;
+
 const $ = id => document.getElementById(id);
 const localVideo = $('localVideo'), ytContainer = $('youtubePlayer'), playerWrap = $('playerWrap');
 const emptyMsg = $('emptyMsg'), scoreBug = $('scoreBug'), finalScore = $('finalScore');
@@ -246,12 +307,81 @@ const playBtn = $('playBtn'), currentTimeEl = $('currentTime'), totalTimeEl = $(
 const scrubber = $('scrubber'), scrubberFill = $('scrubberFill');
 const markersList = $('markersList'), markerCount = $('markerCount');
 const selectionHint = $('selectionHint');
+const importModal = $('importModal');
 
 function fmtTime(s, showTenths=false){ if(!isFinite(s)||s<0)s=0; const m=Math.floor(s/60); const sec=s-m*60; return showTenths?`${m}:${sec.toFixed(1).padStart(4,'0')}`:`${m}:${String(Math.floor(sec)).padStart(2,'0')}`; }
 function showToast(msg, color='var(--accent)'){ document.querySelectorAll('.toast').forEach(t=>t.remove()); const t=document.createElement('div'); t.className='toast'; t.innerHTML=`<span class="dot" style="background:${color}"></span>${msg}`; document.body.appendChild(t); setTimeout(()=>t.remove(),1800); }
 function parseYouTubeId(url){ if(!url)return null; const m=url.match(/(?:youtube\.com\/watch\?(?:.*&)?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/|youtube\.com\/v\/)([a-zA-Z0-9_-]{11})/); if(m)return m[1]; if(/^[a-zA-Z0-9_-]{11}$/.test(url.trim()))return url.trim(); return null; }
 function teamGradient(n){ const t=state.teams[n]; return t.gradient?`linear-gradient(135deg, ${t.color1} 0%, ${t.color2} 100%)`:t.color1; }
 
+// ============================================================
+// TEAMS REGISTRY (presets from assets/teams.json)
+// ============================================================
+async function loadTeamsRegistry(){
+  try{
+    const res = await fetch(teamsRegistryBase + 'teams.json', { cache: 'no-cache' });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    teamsRegistry = await res.json();
+    populateTeamDropdowns();
+  }catch(e){
+    console.warn('[teams.json] not loaded:', e.message || e);
+    // No toast — this is OK to fail silently (user can still configure manually)
+  }
+}
+
+function populateTeamDropdowns(){
+  if(!teamsRegistry || !Array.isArray(teamsRegistry.teams)) return;
+  for(const n of [1,2]){
+    const sel = $(`team${n}Preset`);
+    // Preserve current selection
+    const current = sel.value;
+    sel.innerHTML = '<option value="">— Custom team —</option>';
+    for(const t of teamsRegistry.teams){
+      const opt = document.createElement('option');
+      opt.value = t.id;
+      opt.textContent = t.name;
+      sel.appendChild(opt);
+    }
+    // Restore selection if still valid, else leave blank
+    if(current && teamsRegistry.teams.find(t=>t.id===current)) sel.value = current;
+    else if(state.teams[n].teamId) sel.value = state.teams[n].teamId;
+  }
+}
+
+function resolveLogoPath(relLogo){
+  if(!relLogo) return null;
+  // Paths in teams.json are relative to teams.json itself (which lives in assets/)
+  return teamsRegistryBase + relLogo;
+}
+
+function applyTeamPreset(n, presetId){
+  if(!presetId){
+    // Picked "Custom" — clear preset association but keep current name/colors
+    state.teams[n].teamId = null;
+    state.teams[n].logo = null;
+    renderTeamsUI();
+    showToast(`Team ${n}: custom`, 'var(--text-dim)');
+    return;
+  }
+  if(!teamsRegistry) return;
+  const preset = teamsRegistry.teams.find(t => t.id === presetId);
+  if(!preset) return;
+  state.teams[n].name = preset.name;
+  state.teams[n].color1 = preset.color1;
+  state.teams[n].color2 = preset.color2;
+  state.teams[n].teamId = preset.id;
+  state.teams[n].logo = resolveLogoPath(preset.logo);
+  // Sync inputs
+  $(`team${n}NameInput`).value = preset.name;
+  $(`team${n}Color1`).value = preset.color1;
+  $(`team${n}Color2`).value = preset.color2;
+  renderTeamsUI();
+  showToast(`Team ${n}: ${preset.name}`, preset.color1);
+}
+
+// ============================================================
+// VIDEO LOADING
+// ============================================================
 $('fileInput').addEventListener('change', e=>{ const f=e.target.files[0]; if(f)loadLocal(f); });
 
 function loadLocal(file){
@@ -363,30 +493,56 @@ function animateScore(n, target){
   const tick = ()=>{ i++; el.textContent = current+Math.round((diff*i)/steps); if(i<steps) setTimeout(tick,stepTime); else el.textContent=target; };
   tick();
 }
-function renderTeamsUI(){
-  team1NameEl.textContent = (state.teams[1].name||'Team 1').toUpperCase();
-  team2NameEl.textContent = (state.teams[2].name||'Team 2').toUpperCase();
-  team1Row.style.background = teamGradient(1);
-  team2Row.style.background = teamGradient(2);
-  $('team1Preview').style.background = teamGradient(1);
-  $('team1Preview').textContent = (state.teams[1].name||'Team 1').toUpperCase();
-  $('team2Preview').style.background = teamGradient(2);
-  $('team2Preview').textContent = (state.teams[2].name||'Team 2').toUpperCase();
-  finalTeam1.style.background = teamGradient(1);
-  finalTeam2.style.background = teamGradient(2);
-  finalTeam1.querySelector('.name').textContent = (state.teams[1].name||'Team 1').toUpperCase();
-  finalTeam2.querySelector('.name').textContent = (state.teams[2].name||'Team 2').toUpperCase();
-  const t1Name = (state.teams[1].name||'Team 1').toUpperCase();
-  const t2Name = (state.teams[2].name||'Team 2').toUpperCase();
-  $('markT1Header').style.background = teamGradient(1);
-  $('markT2Header').style.background = teamGradient(2);
-  $('markT1Header').textContent = t1Name;
-  $('markT2Header').textContent = t2Name;
-  $('markT1_3').style.background = teamGradient(1);
-  $('markT1_2').style.background = teamGradient(1);
-  $('markT2_3').style.background = teamGradient(2);
-  $('markT2_2').style.background = teamGradient(2);
+
+function setLogoImg(imgEl, src){
+  if(!imgEl) return;
+  if(src){
+    imgEl.src = src;
+    imgEl.classList.add('visible');
+    imgEl.onerror = () => { imgEl.classList.remove('visible'); };
+  } else {
+    imgEl.classList.remove('visible');
+    imgEl.removeAttribute('src');
+  }
 }
+
+function renderTeamsUI(){
+  for(const n of [1,2]){
+    const team = state.teams[n];
+    const name = (team.name || `Team ${n}`).toUpperCase();
+    const gradient = teamGradient(n);
+
+    // Score bug row
+    const row = n===1 ? team1Row : team2Row;
+    const nameEl = n===1 ? team1NameEl : team2NameEl;
+    nameEl.textContent = name;
+    row.style.background = gradient;
+    setLogoImg($(`team${n}LogoBug`), team.logo);
+
+    // Config thumbnail
+    setLogoImg($(`team${n}LogoThumb`), team.logo);
+
+    // Preset dropdown sync
+    const sel = $(`team${n}Preset`);
+    if(sel) sel.value = team.teamId || '';
+
+    // Preview card
+    $(`team${n}Preview`).style.background = gradient;
+    $(`team${n}Preview`).textContent = name;
+
+    // Final score card
+    const finalT = n===1 ? finalTeam1 : finalTeam2;
+    finalT.style.background = gradient;
+    finalT.querySelector('.name').textContent = name;
+
+    // Mark action buttons + column headers
+    $(`markT${n}Header`).style.background = gradient;
+    $(`markT${n}Header`).textContent = name;
+    $(`markT${n}_3`).style.background = gradient;
+    $(`markT${n}_2`).style.background = gradient;
+  }
+}
+
 function clickMark(team, points, btn){
   addMark(team, points);
   if(btn) btn.blur();
@@ -414,11 +570,23 @@ $('posOptions').addEventListener('click', e=>{
 });
 
 function wireTeamInputs(n){
-  const name=$(`team${n}NameInput`), c1=$(`team${n}Color1`), c2=$(`team${n}Color2`), g=$(`team${n}Gradient`);
-  name.addEventListener('input', ()=>{ state.teams[n].name=name.value; renderTeamsUI(); });
+  const name=$(`team${n}NameInput`), c1=$(`team${n}Color1`), c2=$(`team${n}Color2`), g=$(`team${n}Gradient`), sel=$(`team${n}Preset`);
+  name.addEventListener('input', ()=>{
+    state.teams[n].name = name.value;
+    // If user types a name different from current preset, disconnect the preset association
+    if(state.teams[n].teamId && teamsRegistry){
+      const preset = teamsRegistry.teams.find(t=>t.id===state.teams[n].teamId);
+      if(!preset || preset.name !== name.value){
+        state.teams[n].teamId = null;
+        // Keep the logo — user might want Celtics logo with "Celtics B-Team" name
+      }
+    }
+    renderTeamsUI();
+  });
   c1.addEventListener('input', ()=>{ state.teams[n].color1=c1.value; renderTeamsUI(); });
   c2.addEventListener('input', ()=>{ state.teams[n].color2=c2.value; renderTeamsUI(); });
   g.addEventListener('change', ()=>{ state.teams[n].gradient=g.checked; renderTeamsUI(); });
+  sel.addEventListener('change', ()=>{ applyTeamPreset(n, sel.value); });
 }
 wireTeamInputs(1); wireTeamInputs(2);
 ['preRoll','postRoll','finalDuration','skipAmount','nudgeStep'].forEach(k=>{
@@ -497,8 +665,13 @@ function renderScrubberMarks(){
 }
 
 document.addEventListener('keydown', e=>{
+  // Modal eats all keyboard input except ESC
+  if(!importModal.classList.contains('hidden')){
+    if(e.key==='Escape'){ e.preventDefault(); hideImportDialog(); }
+    return;
+  }
   const tag = (e.target.tagName||'').toLowerCase();
-  if(tag==='input'||tag==='textarea'||e.target.isContentEditable) return;
+  if(tag==='input'||tag==='textarea'||tag==='select'||e.target.isContentEditable) return;
   if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='z'){ e.preventDefault(); undoLastMark(); return; }
   if(e.key==='Escape'){ selectMark(null); return; }
   if((e.key==='Delete'||e.key==='Backspace') && state.selectedMarkId!==null){ e.preventDefault(); deleteMark(state.selectedMarkId); return; }
@@ -515,11 +688,27 @@ document.addEventListener('keydown', e=>{
   else if(k==='t'){ e.preventDefault(); addMark(0,0); }
 });
 
+// ============================================================
+// EXPORT / IMPORT
+// ============================================================
 function exportJSON(){
+  const teamsOut = {};
+  for(const n of [1,2]){
+    const t = state.teams[n];
+    teamsOut[n] = {
+      name: t.name,
+      color1: t.color1,
+      color2: t.color2,
+      gradient: t.gradient,
+    };
+    // Only include teamId when associated with a preset
+    if(t.teamId) teamsOut[n].teamId = t.teamId;
+  }
   const data = {
     version: 1,
     source: state.mode==='youtube'?{type:'youtube',videoId:state.videoId}:{type:'local'},
-    teams: state.teams, config: state.config,
+    teams: teamsOut,
+    config: state.config,
     marks: state.marks.map(m=>({t:m.t, team:m.team, points:m.points, note:m.note||undefined})),
     createdAt: new Date().toISOString()
   };
@@ -531,49 +720,142 @@ function exportJSON(){
   URL.revokeObjectURL(url);
   showToast('Exported JSON', 'var(--success)');
 }
+
 $('jsonInput').addEventListener('change', e=>{
   const f = e.target.files[0]; if(!f) return;
   const r = new FileReader();
-  r.onload = ()=>{ try{ importData(JSON.parse(r.result)); showToast('Imported JSON', 'var(--success)'); } catch(err){ showToast('Invalid JSON: '+err.message, 'var(--danger)'); } };
+  r.onload = ()=>{
+    try{
+      const data = JSON.parse(r.result);
+      showImportDialog(data);
+    } catch(err){
+      showToast('Invalid JSON: '+err.message, 'var(--danger)');
+    }
+    e.target.value = '';  // let same file be reselected
+  };
   r.readAsText(f);
 });
-function importData(data){
-  if(data.teams){
-    state.teams = Object.assign(state.teams, data.teams);
-    ['1','2'].forEach(n=>{
-      const t = state.teams[n];
-      $(`team${n}NameInput`).value = t.name||`Team ${n}`;
-      $(`team${n}Color1`).value = t.color1||'#ffffff';
-      $(`team${n}Color2`).value = t.color2||t.color1||'#ffffff';
-      $(`team${n}Gradient`).checked = !!t.gradient;
-    });
+
+function showImportDialog(data){
+  pendingImport = data;
+  const hasTeams = !!(data.teams && (data.teams['1'] || data.teams[1] || data.teams['2'] || data.teams[2]));
+  const hasConfig = !!data.config;
+  const marksArr = Array.isArray(data.marks) ? data.marks : [];
+  const hasMarks = marksArr.length > 0;
+
+  // Build labels
+  let teamsLabel = 'Teams';
+  if(hasTeams){
+    const t1 = (data.teams['1']||data.teams[1]||{}).name;
+    const t2 = (data.teams['2']||data.teams[2]||{}).name;
+    if(t1 && t2) teamsLabel = `Teams (${t1} vs ${t2})`;
   }
-  if(data.config){
+  $('optTeamsLabel').textContent = teamsLabel + (hasTeams ? '' : ' (none in file)');
+  $('optMarksLabel').textContent = hasMarks ? `Markers (${marksArr.length})` : 'Markers (none in file)';
+
+  // Enable/disable + default check states
+  $('optTeams').disabled = !hasTeams;  $('optTeams').checked = hasTeams;
+  $('optConfig').disabled = !hasConfig; $('optConfig').checked = hasConfig;
+  $('optMarks').disabled = !hasMarks;  $('optMarks').checked = hasMarks;
+  $('optTeamsWrap').classList.toggle('disabled', !hasTeams);
+  $('optConfigWrap').classList.toggle('disabled', !hasConfig);
+  $('optMarksWrap').classList.toggle('disabled', !hasMarks);
+
+  importModal.classList.remove('hidden');
+}
+
+function hideImportDialog(){
+  importModal.classList.add('hidden');
+  pendingImport = null;
+}
+
+function applyImport(){
+  const data = pendingImport;
+  if(!data){ hideImportDialog(); return; }
+  const wantTeams  = $('optTeams').checked  && !$('optTeams').disabled;
+  const wantConfig = $('optConfig').checked && !$('optConfig').disabled;
+  const wantMarks  = $('optMarks').checked  && !$('optMarks').disabled;
+
+  if(wantTeams && data.teams){
+    for(const n of [1,2]){
+      const src = data.teams[String(n)] || data.teams[n];
+      if(!src) continue;
+      // Apply name/colors/gradient/teamId — rebuild logo via preset lookup if we have a registry
+      state.teams[n].name    = src.name || state.teams[n].name;
+      state.teams[n].color1  = src.color1 || state.teams[n].color1;
+      state.teams[n].color2  = src.color2 || state.teams[n].color2;
+      if('gradient' in src) state.teams[n].gradient = !!src.gradient;
+      state.teams[n].teamId  = src.teamId || null;
+      // Re-resolve logo from registry if the JSON referenced a preset
+      state.teams[n].logo = null;
+      if(state.teams[n].teamId && teamsRegistry){
+        const preset = teamsRegistry.teams.find(t => t.id === state.teams[n].teamId);
+        if(preset) state.teams[n].logo = resolveLogoPath(preset.logo);
+      }
+      // Sync inputs
+      $(`team${n}NameInput`).value  = state.teams[n].name;
+      $(`team${n}Color1`).value     = state.teams[n].color1;
+      $(`team${n}Color2`).value     = state.teams[n].color2;
+      $(`team${n}Gradient`).checked = state.teams[n].gradient;
+    }
+  }
+
+  if(wantConfig && data.config){
     Object.assign(state.config, data.config);
-    ['preRoll','postRoll','finalDuration','skipAmount','nudgeStep'].forEach(k=>{ if(k in state.config) $(k).value = state.config[k]; });
+    ['preRoll','postRoll','finalDuration','skipAmount','nudgeStep'].forEach(k=>{
+      if(k in state.config) $(k).value = state.config[k];
+    });
     if(state.config.bugPosition){
       document.querySelectorAll('#posOptions button').forEach(b=>b.classList.toggle('active', b.dataset.pos===state.config.bugPosition));
       scoreBug.className = 'score-bug pos-'+state.config.bugPosition + (state.mode?'':' hidden');
       if(state.mode) scoreBug.classList.remove('hidden');
     }
   }
-  if(Array.isArray(data.marks)){
-    state.marks = data.marks.map(m=>({ id:markIdCounter++, t:+m.t, team:m.team, points:m.points, note:m.note })).sort((a,b)=>a.t-b.t);
+
+  if(wantMarks && Array.isArray(data.marks)){
+    state.marks = data.marks.map(m=>({
+      id: markIdCounter++,
+      t: +m.t, team: m.team, points: m.points, note: m.note
+    })).sort((a,b)=>a.t-b.t);
+    selectMark(null);
   }
+
   renderTeamsUI(); renderMarkers(); renderScrubberMarks(); updateScoreBug();
-  if(data.source && data.source.type==='youtube' && data.source.videoId){
-    $('ytUrl').value = `https://youtu.be/${data.source.videoId}`;
-    if(state.mode!=='youtube' || state.videoId!==data.source.videoId){
-      setTimeout(()=>{ if(confirm(`This JSON references YouTube video ${data.source.videoId}. Load it now?`)) loadYouTube(); }, 200);
+
+  // Offer to load the referenced YouTube video — only if we brought in marks or teams
+  // (otherwise they're likely re-using the same video they already have open)
+  if((wantMarks || wantTeams) && data.source && data.source.type==='youtube' && data.source.videoId){
+    if(state.mode !== 'youtube' || state.videoId !== data.source.videoId){
+      $('ytUrl').value = `https://youtu.be/${data.source.videoId}`;
+      setTimeout(()=>{
+        if(confirm(`This JSON references YouTube video ${data.source.videoId}. Load it now?`)) loadYouTube();
+      }, 200);
     }
   }
+
+  const parts = [];
+  if(wantTeams) parts.push('teams');
+  if(wantConfig) parts.push('settings');
+  if(wantMarks) parts.push(`${data.marks.length} markers`);
+  showToast(parts.length ? `Imported ${parts.join(', ')}` : 'Nothing imported', parts.length ? 'var(--success)' : 'var(--warn)');
+  hideImportDialog();
 }
 
+// Click outside modal card to cancel
+importModal.addEventListener('click', e=>{
+  if(e.target === importModal) hideImportDialog();
+});
+
+// ============================================================
+// INIT
+// ============================================================
 renderTeamsUI(); renderMarkers(); updatePlaybackUI();
+loadTeamsRegistry();  // async, runs in background
+
 window.addEventListener('keydown', e=>{
   if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(e.key)){
     const tag = (e.target.tagName||'').toLowerCase();
-    if(tag!=='input'&&tag!=='textarea') e.preventDefault();
+    if(tag!=='input'&&tag!=='textarea'&&tag!=='select') e.preventDefault();
   }
 }, { passive:false });
 </script>

@@ -109,6 +109,170 @@ def brighten(img: Image.Image, factor: float) -> Image.Image:
 
 
 # =============================================================================
+# ASSET LOADING  (logos, player photos, team registry)
+# =============================================================================
+
+@functools.lru_cache(maxsize=64)
+def _load_rgba_cached(path: str) -> Optional[Image.Image]:
+    """Open an image as RGBA. Cached by absolute path."""
+    try:
+        return Image.open(path).convert('RGBA')
+    except Exception:
+        return None
+
+
+def load_logo(path: Optional[str], target_height: int) -> Optional[Image.Image]:
+    """Load an image and resize to the given height, preserving aspect ratio."""
+    if not path or not os.path.exists(path) or target_height <= 0:
+        return None
+    img = _load_rgba_cached(path)
+    if img is None:
+        return None
+    w, h = img.size
+    if h <= 0:
+        return None
+    new_h = target_height
+    new_w = max(1, int(round(w * (new_h / h))))
+    return img.resize((new_w, new_h), Image.LANCZOS)
+
+
+def load_teams_config(path: Optional[str]) -> Optional[Dict]:
+    """Load a teams.json file and resolve asset paths to absolute ones."""
+    if not path or not os.path.exists(path):
+        return None
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    except Exception as e:
+        print(f"Warning: could not parse teams config '{path}': {e}")
+        return None
+
+    base = Path(path).parent.resolve()
+
+    def _resolve(p: Optional[str]) -> Optional[str]:
+        if not p:
+            return None
+        pp = Path(p)
+        return str(pp if pp.is_absolute() else base / pp)
+
+    league = data.get('league') or {}
+    if league.get('logo'):
+        league['logo_abs'] = _resolve(league['logo'])
+
+    for team in (data.get('teams') or []):
+        if team.get('logo'):
+            team['logo_abs'] = _resolve(team['logo'])
+
+    for player in (data.get('players') or []):
+        if player.get('photo'):
+            player['photo_abs'] = _resolve(player['photo'])
+
+    return data
+
+
+def auto_find_teams_config(marks_path: Optional[str] = None) -> Optional[str]:
+    """Look for teams.json near the markings file or the exporter script.
+    Returns the first match found, or None."""
+    candidates: List[Path] = []
+    if marks_path:
+        mp = Path(marks_path).resolve()
+        candidates += [
+            mp.parent / 'teams.json',
+            mp.parent / 'assets' / 'teams.json',
+            mp.parent.parent / 'assets' / 'teams.json',
+        ]
+    try:
+        script_p = Path(__file__).resolve()
+        candidates += [
+            script_p.parent / 'teams.json',
+            script_p.parent / 'assets' / 'teams.json',
+            script_p.parent.parent / 'assets' / 'teams.json',
+        ]
+    except NameError:
+        pass
+    for c in candidates:
+        if c.exists():
+            return str(c)
+    return None
+
+
+def find_team_in_registry(team_marks: Dict, registry: Optional[Dict]) -> Optional[Dict]:
+    """Look up a team in the registry by `id`/`teamId`, then by case-insensitive name."""
+    if not registry:
+        return None
+    team_id = team_marks.get('id') or team_marks.get('teamId')
+    name_lower = (team_marks.get('name') or '').strip().lower()
+    for t in (registry.get('teams') or []):
+        if team_id and t.get('id') == team_id:
+            return t
+    if name_lower:
+        for t in (registry.get('teams') or []):
+            if (t.get('name') or '').strip().lower() == name_lower:
+                return t
+    return None
+
+
+def find_player_in_registry(player_name: str, registry: Optional[Dict]) -> Optional[Dict]:
+    if not registry or not player_name:
+        return None
+    name_lower = player_name.strip().lower()
+    for p in (registry.get('players') or []):
+        if (p.get('name') or '').strip().lower() == name_lower:
+            return p
+    return None
+
+
+def enrich_teams_from_registry(teams: Dict, registry: Optional[Dict]) -> Dict:
+    """Fill in `logo` and `players` on each team from the registry, in-place."""
+    if not registry:
+        return teams
+    for key in ('1', '2', 1, 2):
+        if key not in teams:
+            continue
+        team = teams[key]
+        match = find_team_in_registry(team, registry)
+        if not match:
+            continue
+        if match.get('logo_abs') and not team.get('logo'):
+            team['logo'] = match['logo_abs']
+        if match.get('players') and not team.get('players'):
+            team['players'] = list(match['players'])
+    return teams
+
+
+def _render_initial_avatar(initial: str, size: int,
+                           bg_rgb: Tuple[int, int, int]) -> Image.Image:
+    """Fallback avatar when a player photo is missing — colored circle with initial."""
+    img = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    draw.ellipse([(0, 0), (size - 1, size - 1)],
+                 fill=(bg_rgb[0], bg_rgb[1], bg_rgb[2], 255))
+    font = load_font(max(10, int(size * 0.45)))
+    letter = (initial or '?')[:1].upper()
+    bbox = draw.textbbox((0, 0), letter, font=font)
+    iw = bbox[2] - bbox[0]
+    ih = bbox[3] - bbox[1]
+    draw.text(((size - iw) // 2, (size - ih) // 2 - bbox[1]),
+              letter, fill=(255, 255, 255, 255), font=font)
+    return img
+
+
+def _crop_square_circular(photo: Image.Image, size: int) -> Image.Image:
+    """Center-crop to square, resize to `size`, apply circular mask."""
+    pw, ph = photo.size
+    sq = min(pw, ph)
+    left = (pw - sq) // 2
+    top = (ph - sq) // 2
+    photo = photo.crop((left, top, left + sq, top + sq))
+    photo = photo.resize((size, size), Image.LANCZOS)
+    mask = Image.new('L', (size, size), 0)
+    ImageDraw.Draw(mask).ellipse([(0, 0), (size - 1, size - 1)], fill=255)
+    out = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+    out.paste(photo, (0, 0), mask)
+    return out
+
+
+# =============================================================================
 # SCORE BUG RENDERING
 # =============================================================================
 
@@ -117,13 +281,17 @@ def render_score_bug(score: Dict[int, int],
                      bug_scale: float = 1.0,
                      highlight_team: Optional[int] = None,
                      highlight_intensity: float = 0.0) -> Image.Image:
-    """Render the two-row score bug as an RGBA PIL image with rounded corners."""
-    width = int(230 * bug_scale)
-    row_h = int(40 * bug_scale)
+    """Render the two-row score bug as an RGBA PIL image with rounded corners.
+    If a team has a `logo` key pointing to an image file, it's drawn on the
+    left side of that team's row."""
+    width = int(260 * bug_scale)
+    row_h = int(44 * bug_scale)
     radius = int(8 * bug_scale)
-    pad_x = int(14 * bug_scale)
+    pad_x = int(12 * bug_scale)
+    logo_size = int(row_h * 0.75)
+    logo_gap = int(8 * bug_scale)
     name_size = max(10, int(17 * bug_scale))
-    score_size = max(12, int(20 * bug_scale))
+    score_size = max(12, int(22 * bug_scale))
 
     total_h = row_h * 2
     canvas = Image.new('RGBA', (width, total_h), (0, 0, 0, 0))
@@ -143,22 +311,32 @@ def render_score_bug(score: Dict[int, int],
         else:
             row_bg = Image.new('RGB', (width, row_h), c1)
 
-        # Apply highlight/pulse on the scoring row
         if highlight_team == team_num and highlight_intensity > 0:
             row_bg = brighten(row_bg, highlight_intensity)
 
         canvas.paste(row_bg.convert('RGBA'), (0, i * row_h))
+
+        # Team logo on the left
+        text_x = pad_x
+        logo_path = team.get('logo')
+        if logo_path:
+            logo = load_logo(logo_path, logo_size)
+            if logo is not None:
+                lx = pad_x
+                ly = i * row_h + (row_h - logo.size[1]) // 2
+                canvas.alpha_composite(logo, (lx, ly))
+                text_x = pad_x + logo.size[0] + logo_gap
 
         # Draw text
         draw = ImageDraw.Draw(canvas)
         name = (team.get('name') or f'Team {team_num}').upper()
         score_text = str(int(score.get(team_num, 0)))
 
-        # Team name (left)
+        # Team name (left, after optional logo)
         name_bbox = draw.textbbox((0, 0), name, font=name_font)
         name_h = name_bbox[3] - name_bbox[1]
         y_text = i * row_h + (row_h - name_h) // 2 - name_bbox[1]
-        _draw_text_with_shadow(draw, (pad_x, y_text), name, name_font)
+        _draw_text_with_shadow(draw, (text_x, y_text), name, name_font)
 
         # Score (right)
         score_bbox = draw.textbbox((0, 0), score_text, font=score_font)
@@ -176,7 +354,7 @@ def render_score_bug(score: Dict[int, int],
     out = Image.new('RGBA', (width, total_h), (0, 0, 0, 0))
     out.paste(canvas, (0, 0), mask)
 
-    # Drop shadow underneath (cheap: darken a slightly offset mask)
+    # Drop shadow underneath
     shadow = Image.new('RGBA', (width + 8, total_h + 8), (0, 0, 0, 0))
     sh_mask = Image.new('L', (width, total_h), 0)
     ImageDraw.Draw(sh_mask).rounded_rectangle(
@@ -334,74 +512,175 @@ def _pulse_curve(dt: float) -> float:
 
 def make_final_screen(teams: Dict, score: Dict[int, int],
                       duration: float, resolution: Tuple[int, int],
-                      bug_scale: float = 1.0):
-    """Big centered Team1 — Team2 card at the end of the reel."""
+                      bug_scale: float = 1.0,
+                      teams_registry: Optional[Dict] = None):
+    """Broadcast-style final screen: league logo at top, two team cards
+    (team logo, name, score, player photos with names), dash between them.
+    Gracefully degrades if logos/players aren't available."""
     w, h = resolution
     img = Image.new('RGB', (w, h), FINAL_BG_COLOR)
     draw = ImageDraw.Draw(img)
 
-    name_size = max(20, int(h * 0.045))
-    score_size = max(60, int(h * 0.22))
-    dash_size = max(40, int(h * 0.13))
+    # Font sizing proportional to frame height
+    league_name_size = max(16, int(h * 0.028))
+    team_name_size = max(22, int(h * 0.042))
+    score_size = max(60, int(h * 0.20))
+    dash_size = max(40, int(h * 0.14))
+    player_name_size = max(12, int(h * 0.022))
 
-    card_w = int(w * 0.26)
-    card_h = int(h * 0.48)
-    gap = int(w * 0.06)
-    total_w = card_w * 2 + gap * 2
-    start_x = (w - total_w) // 2
-    card_y = (h - card_h) // 2
-
-    name_font = load_font(name_size)
+    league_font = load_font(league_name_size)
+    team_name_font = load_font(team_name_size)
     score_font = load_font(score_size)
     dash_font = load_font(dash_size)
+    player_font = load_font(player_name_size)
+
+    # --- League logo / name at top ---
+    league = (teams_registry or {}).get('league') or {}
+    league_bottom_y = int(h * 0.04)
+    if league.get('logo_abs'):
+        league_logo = load_logo(league['logo_abs'], int(h * 0.10))
+        if league_logo is not None:
+            lx = (w - league_logo.size[0]) // 2
+            img.paste(league_logo, (lx, int(h * 0.04)), league_logo)
+            league_bottom_y = int(h * 0.04) + league_logo.size[1] + int(h * 0.01)
+    elif league.get('name'):
+        name = league['name'].upper()
+        bb = draw.textbbox((0, 0), name, font=league_font)
+        nw = bb[2] - bb[0]
+        y0 = int(h * 0.05)
+        _draw_text_with_shadow(draw, ((w - nw) // 2, y0 - bb[1]), name, league_font)
+        league_bottom_y = y0 + (bb[3] - bb[1]) + int(h * 0.01)
+
+    # --- Team cards ---
+    card_w = int(w * 0.33)
+    card_h = int(h * 0.68)
+    gap = int(w * 0.06)
+    total_w = card_w * 2 + gap
+    start_x = (w - total_w) // 2
+    card_y = max(league_bottom_y + int(h * 0.015), int(h * 0.16))
+
+    # If cards would overflow the frame, pull the card_y up and/or shorten card_h
+    if card_y + card_h > h - int(h * 0.02):
+        card_h = h - card_y - int(h * 0.02)
 
     for i, team_num in enumerate((1, 2)):
         team = teams.get(str(team_num), teams.get(team_num, {}))
         c1 = hex_to_rgb(team.get('color1', '#888'))
         c2 = hex_to_rgb(team.get('color2', team.get('color1', '#888')))
-        x = start_x + i * (card_w + gap * 2)
+        use_gradient = bool(team.get('gradient', True))
+        x = start_x + i * (card_w + gap)
 
-        # Card bg
-        if team.get('gradient', True):
-            bg = make_gradient(card_w, card_h, c1, c2)
+        # Card background
+        if use_gradient:
+            card_bg = make_gradient(card_w, card_h, c1, c2)
         else:
-            bg = Image.new('RGB', (card_w, card_h), c1)
+            card_bg = Image.new('RGB', (card_w, card_h), c1)
 
+        # Rounded card
         mask = Image.new('L', (card_w, card_h), 0)
         ImageDraw.Draw(mask).rounded_rectangle(
-            [(0, 0), (card_w - 1, card_h - 1)], radius=22, fill=255
+            [(0, 0), (card_w - 1, card_h - 1)], radius=28, fill=255
         )
-        img.paste(bg, (x, card_y), mask)
+        img.paste(card_bg, (x, card_y), mask)
 
-        # Text
+        players = team.get('players') or []
+        has_players = bool(players)
+
+        # Vertical zones adapt based on whether we have players to show
+        if has_players:
+            z_logo_top = 0.05
+            z_logo_h = 0.22
+            z_name_y = 0.30
+            z_score_y = 0.42
+            z_players_y = 0.74
+        else:
+            z_logo_top = 0.08
+            z_logo_h = 0.28
+            z_name_y = 0.40
+            z_score_y = 0.55
+            z_players_y = 1.0  # unused
+
+        # 1. Team logo
+        logo_path = team.get('logo')
+        if logo_path:
+            target_logo_h = int(card_h * z_logo_h)
+            team_logo = load_logo(logo_path, target_logo_h)
+            if team_logo is not None:
+                tlx = x + (card_w - team_logo.size[0]) // 2
+                tly = card_y + int(card_h * z_logo_top)
+                img.paste(team_logo, (tlx, tly), team_logo)
+
+        # 2. Team name
         name = (team.get('name') or f'Team {team_num}').upper()
+        nb = draw.textbbox((0, 0), name, font=team_name_font)
+        nw = nb[2] - nb[0]
+        name_y = card_y + int(card_h * z_name_y)
+        _draw_text_with_shadow(draw,
+                               (x + (card_w - nw) // 2, name_y - nb[1]),
+                               name, team_name_font)
+
+        # 3. Score (huge)
         score_text = str(int(score.get(team_num, 0)))
+        sb = draw.textbbox((0, 0), score_text, font=score_font)
+        sw = sb[2] - sb[0]
+        score_y = card_y + int(card_h * z_score_y)
+        _draw_text_with_shadow(draw,
+                               (x + (card_w - sw) // 2, score_y - sb[1]),
+                               score_text, score_font)
 
-        name_bbox = draw.textbbox((0, 0), name, font=name_font)
-        name_w = name_bbox[2] - name_bbox[0]
-        draw.text(
-            (x + (card_w - name_w) // 2, card_y + int(card_h * 0.14)),
-            name, fill=(255, 255, 255), font=name_font,
-        )
+        # 4. Player photos
+        if has_players:
+            n = len(players)
+            photo_size = int(card_h * 0.14)
+            spacing = int(card_w * 0.04)
+            total_row_w = n * photo_size + (n - 1) * spacing
+            # Clamp if too wide for card
+            if total_row_w > card_w - 20:
+                photo_size = max(24, (card_w - 20 - (n - 1) * spacing) // n)
+                total_row_w = n * photo_size + (n - 1) * spacing
 
-        score_bbox = draw.textbbox((0, 0), score_text, font=score_font)
-        sw = score_bbox[2] - score_bbox[0]
-        sh = score_bbox[3] - score_bbox[1]
-        sy = card_y + int(card_h * 0.38)
-        draw.text(
-            (x + (card_w - sw) // 2, sy - score_bbox[1]),
-            score_text, fill=(255, 255, 255), font=score_font,
-        )
+            row_x = x + (card_w - total_row_w) // 2
+            row_y = card_y + int(card_h * z_players_y)
 
-    # Dash in the middle
+            for pi, player_name in enumerate(players):
+                px = row_x + pi * (photo_size + spacing)
+
+                player_info = find_player_in_registry(player_name, teams_registry)
+                avatar: Optional[Image.Image] = None
+                if player_info and player_info.get('photo_abs'):
+                    photo = _load_rgba_cached(player_info['photo_abs'])
+                    if photo is not None:
+                        avatar = _crop_square_circular(photo, photo_size)
+                if avatar is None:
+                    avatar = _render_initial_avatar(player_name, photo_size, c2)
+
+                img.paste(avatar, (px, row_y), avatar)
+
+                # White ring around photo
+                ring = ImageDraw.Draw(img)
+                ring.ellipse(
+                    [(px - 2, row_y - 2),
+                     (px + photo_size + 1, row_y + photo_size + 1)],
+                    outline=(255, 255, 255), width=3
+                )
+
+                # Player name below
+                pnb = draw.textbbox((0, 0), player_name, font=player_font)
+                pnw = pnb[2] - pnb[0]
+                pname_y = row_y + photo_size + 10
+                _draw_text_with_shadow(draw,
+                                       (px + (photo_size - pnw) // 2, pname_y - pnb[1]),
+                                       player_name, player_font)
+
+    # --- Dash between cards (aligned with score row of the cards) ---
     dash = '—'
-    dash_bbox = draw.textbbox((0, 0), dash, font=dash_font)
-    dw = dash_bbox[2] - dash_bbox[0]
-    dh = dash_bbox[3] - dash_bbox[1]
-    draw.text(
-        ((w - dw) // 2, (h - dh) // 2 - dash_bbox[1]),
-        dash, fill=(140, 140, 150), font=dash_font,
-    )
+    db = draw.textbbox((0, 0), dash, font=dash_font)
+    dw = db[2] - db[0]
+    dh = db[3] - db[1]
+    # Vertically center the dash on the score text row
+    target_score_y_center = card_y + int(card_h * 0.42) + (score_size // 2)
+    dash_y = target_score_y_center - dh // 2 - db[1]
+    draw.text(((w - dw) // 2, dash_y), dash, fill=(150, 150, 160), font=dash_font)
 
     return ImageClip(np.array(img)).set_duration(duration)
 
@@ -529,6 +808,9 @@ Examples:
     parser.add_argument('--crf', type=int, default=20, help='ffmpeg CRF quality 0-51, lower=better (default: 20)')
     parser.add_argument('--keep-download', action='store_true',
                         help='Keep the downloaded YouTube file after export')
+    parser.add_argument('--teams', default=None,
+                        help='Path to teams.json with logos/players '
+                             '(auto-detected in ./assets or next to markings if omitted)')
     args = parser.parse_args()
 
     # Resolve video path
@@ -557,6 +839,13 @@ Examples:
         '2': {'name': 'Team 2', 'color1': '#007A33', 'color2': '#004D20', 'gradient': True},
     })
     config = data.get('config', {})
+
+    # Load team registry (logos + players)
+    teams_config_path = args.teams or auto_find_teams_config(args.marks)
+    teams_registry = load_teams_config(teams_config_path) if teams_config_path else None
+    if teams_registry:
+        print(f"Using teams config: {teams_config_path}")
+        enrich_teams_from_registry(teams, teams_registry)
 
     # Optional sanity check for YouTube source/video mismatch
     src_info = data.get('source', {})
@@ -589,7 +878,10 @@ Examples:
     if final_dur > 0:
         print("  [final] final-score screen")
         totals = final_totals(marks)
-        clips.append(make_final_screen(teams, totals, final_dur, source.size, args.bug_scale))
+        clips.append(make_final_screen(
+            teams, totals, final_dur, source.size, args.bug_scale,
+            teams_registry=teams_registry,
+        ))
 
     # Concatenate + render
     print("\nConcatenating clips...")

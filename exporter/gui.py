@@ -36,6 +36,9 @@ try:
         final_totals,
         make_final_screen,
         make_highlight_clip,
+        load_teams_config,
+        auto_find_teams_config,
+        enrich_teams_from_registry,
     )
     from moviepy.editor import (  # noqa: E402
         VideoFileClip,
@@ -146,6 +149,7 @@ class ExporterApp:
         self.crf = tk.StringVar(value="20")
         self.preset = tk.StringVar(value="medium")
         self.keep_download = tk.BooleanVar(value=False)
+        self.teams_config_path = tk.StringVar()
 
         # ---- Runtime state ----
         self.log_queue: queue.Queue = queue.Queue()
@@ -202,6 +206,15 @@ class ExporterApp:
         of.columnconfigure(0, weight=1)
         ttk.Entry(of, textvariable=self.output_path).grid(row=0, column=0, sticky="ew")
         ttk.Button(of, text="Save as…", command=self._browse_output, width=12).grid(row=0, column=1, padx=(8, 0))
+
+        # --- Teams config (optional) ---
+        tf = ttk.LabelFrame(outer, text="Team presets (optional)", padding=10, style="Section.TLabelframe")
+        tf.pack(fill="x", pady=(0, 8))
+        tf.columnconfigure(0, weight=1)
+        ttk.Entry(tf, textvariable=self.teams_config_path).grid(row=0, column=0, sticky="ew")
+        ttk.Button(tf, text="Browse…", command=self._browse_teams, width=12).grid(row=0, column=1, padx=(8, 0))
+        ttk.Label(tf, text="teams.json with logos + player rosters. Auto-detected near your assets folder if left blank.",
+                  foreground="#666").grid(row=1, column=0, columnspan=2, sticky="w", pady=(6, 0))
 
         # --- Settings: two columns ---
         settings = ttk.Frame(outer)
@@ -344,6 +357,14 @@ class ExporterApp:
         if path:
             self.output_path.set(path)
 
+    def _browse_teams(self) -> None:
+        path = filedialog.askopenfilename(
+            title="Select teams.json",
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
+        )
+        if path:
+            self.teams_config_path.set(path)
+
     def _autoload_from_json(self, path: str) -> None:
         try:
             with open(path, "r", encoding="utf-8") as f:
@@ -418,6 +439,7 @@ class ExporterApp:
 
         opts["preset"] = self.preset.get().strip() or "medium"
         opts["keepDownload"] = bool(self.keep_download.get())
+        opts["teamsConfig"] = self.teams_config_path.get().strip() or None
         return opts
 
     def _on_start(self) -> None:
@@ -522,6 +544,15 @@ class ExporterApp:
             # bugPosition stays as whatever the JSON said (or default)
             config.setdefault("bugPosition", "top-left")
 
+            # Load teams registry (logos + players)
+            teams_config_path = opts.get("teamsConfig") or auto_find_teams_config(opts["marks"])
+            teams_registry = load_teams_config(teams_config_path) if teams_config_path else None
+            if teams_registry:
+                print(f"Using teams config: {teams_config_path}")
+                enrich_teams_from_registry(teams, teams_registry)
+            else:
+                print("No teams.json found — exporting with basic team info only.")
+
             # 3. Load video
             print(f"Loading video: {video_path}")
             source = VideoFileClip(video_path)
@@ -549,7 +580,8 @@ class ExporterApp:
                 totals = final_totals(marks)
                 clips.append(make_final_screen(
                     teams, totals, opts["finalDuration"],
-                    source.size, opts["bugScale"]
+                    source.size, opts["bugScale"],
+                    teams_registry=teams_registry,
                 ))
 
             # 6. Concatenate + write

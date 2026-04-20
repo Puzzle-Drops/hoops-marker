@@ -1,0 +1,63 @@
+{
+  "_comment": "Single source of truth for team presets. Paths are relative to THIS file.",
+  "league": {
+    "name": "Your League",
+    "logo": "league.png"
+  },
+  "teams": [
+    {
+      "id": "celtics",
+      "name": "Celtics",
+      "color1": "#007A33",
+      "color2": "#BA9653",
+      "logo": "teams/celtics.png",
+      "players": ["Jacob", "Daniel"]
+    },
+    {
+      "id": "lakers",
+      "name": "Lakers",
+      "color1": "#552583",
+      "color2": "#FDB927",
+      "logo": "teams/lakers.png",
+      "players": ["Jacob", "Joseph"]
+    },
+    {
+      "id": "warriors",
+      "name": "Warriors",
+      "color1": "#1D428A",
+      "color2": "#FFC72C",
+      "logo": "teams/warriors.png",
+      "players": ["Jacob", "Nathan"]
+    },
+    {
+      "id": "heat",
+      "name": "Heat",
+      "color1": "#98002E",
+      "color2": "#F9A01B",
+      "logo": "teams/heat.png",
+      "players": ["Daniel", "Joseph"]
+    },
+    {
+      "id": "bucks",
+      "name": "Bucks",
+      "color1": "#00471B",
+      "color2": "#EEE1C6",
+      "logo": "teams/bucks.png",
+      "players": ["Daniel", "Nathan"]
+    },
+    {
+      "id": "suns",
+      "name": "Suns",
+      "color1": "#E56020",
+      "color2": "#1D1160",
+      "logo": "teams/suns.png",
+      "players": ["Joseph", "Nathan"]
+    }
+  ],
+  "players": [
+    { "name": "Jacob",  "photo": "players/jacob.jpg" },
+    { "name": "Daniel", "photo": "players/daniel.jpg" },
+    { "name": "Joseph", "photo": "players/joseph.jpg" },
+    { "name": "Nathan", "photo": "players/nathan.jpg" }
+  ]
+}
