@@ -32,10 +32,12 @@ try:
         sys.path.insert(0, str(HERE))
     from export import (  # noqa: E402
         compute_running_scores,
+        build_chunks,
         download_youtube,
         final_totals,
         make_final_screen,
         make_pre_game_screen,
+        make_chunk_clip,
         make_highlight_clip,
         load_teams_config,
         auto_find_teams_config,
@@ -594,6 +596,7 @@ class ExporterApp:
 
             # 4. Build clips
             entries = compute_running_scores(marks)
+            chunks = build_chunks(entries, config, source.duration)
 
             # Pre-game intro
             if opts["preGameDuration"] > 0:
@@ -604,14 +607,21 @@ class ExporterApp:
                     teams_registry=teams_registry,
                 ))
 
-            for i, entry in enumerate(entries):
-                mk = entry["mark"]
-                label = (f"+{mk['points']} T{mk['team']}"
-                         if mk.get("team") in (1, 2) else "MARK")
-                print(f"  [{i+1}/{len(entries)}]  t={mk['t']:.2f}s  {label}  "
-                      f"→ {entry['new'][1]}–{entry['new'][2]}")
-                clip = make_highlight_clip(
-                    source, entry, config, teams, bug_scale=opts["bugScale"]
+            merged_away = len(entries) - sum(len(c["events"]) == 1 for c in chunks)
+            if merged_away:
+                print(f"  Merged {merged_away} overlapping window(s) → {len(chunks)} clip(s)")
+            for i, chunk in enumerate(chunks):
+                labels = []
+                for ent in chunk["events"]:
+                    mk = ent["mark"]
+                    labels.append(f"+{mk['points']} T{mk['team']}"
+                                  if mk.get("team") in (1, 2) else "MARK")
+                final_new = chunk["events"][-1]["new"]
+                print(f"  [{i+1}/{len(chunks)}]  {chunk['start']:.2f}–{chunk['end']:.2f}s  "
+                      f"({len(chunk['events'])} event{'s' if len(chunk['events'])>1 else ''}: "
+                      f"{', '.join(labels)})  → {final_new[1]}–{final_new[2]}")
+                clip = make_chunk_clip(
+                    source, chunk, config, teams, bug_scale=opts["bugScale"]
                 )
                 if clip is not None:
                     clips.append(clip)

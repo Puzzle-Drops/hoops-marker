@@ -59,16 +59,17 @@ python export.py --video game.mp4 --marks markings.json
 
 1. Reads the JSON; sorts marks by timestamp; computes the running score across the game.
 2. Optionally prepends a **pre-game intro** for `preGameDuration` seconds (default 3s) with league logo, team logos + names, player portraits, and a big "VS".
-3. For each mark, cuts `[t − preRoll, t + postRoll]` from the source video.
-4. Overlays a score bug onto every frame of that clip:
-   - Before the basket moment: shows the *previous* score.
-   - For `0.4s` starting at the basket: counts up from previous to new score.
-   - For `0.5s` after the basket: the scoring row briefly brightens (pulse).
-   - After that: shows the *new* score, static, until the clip ends.
-   - For "mark-only" hits (`T` key, `team: 0`): no score change, bug stays static.
-5. Concatenates all clips in chronological order.
-6. Appends a **final-score** card for `finalDuration` seconds (default 3s) — same visual language as the intro with scores in place of VS.
-7. Renders `highlights.mp4` via ffmpeg (libx264 + AAC, yuv420p for broad compatibility).
+3. For each mark, computes the window `[t − preRoll, t + postRoll]`. **Overlapping windows are merged** so the same footage never plays twice — e.g. if mark A covers `32–36s` and mark B covers `35–39s`, the reel plays `32–39s` once and the score bug transitions through both baskets at their real times inside the combined clip. Touching windows (end == next start) are merged too, to avoid 1-frame cuts.
+4. Cuts each merged chunk from the source video.
+5. Overlays a score bug onto every frame of that chunk:
+   - Before the first basket in the chunk: shows the *previous* score.
+   - For `0.4s` starting at each basket: counts up from previous to new score.
+   - For `0.5s` after each basket: the scoring row briefly brightens (pulse).
+   - Otherwise: shows the running total.
+   - For "mark-only" hits (`T` key, `team: 0`): no score change, no pulse, score continues at running total.
+6. Concatenates all chunks in chronological order.
+7. Appends a **final-score** card for `finalDuration` seconds (default 3s) — same visual language as the intro with scores in place of VS.
+8. Renders `highlights.mp4` via ffmpeg (libx264 + AAC, yuv420p for broad compatibility).
 
 Pre-roll, post-roll, pre-game duration, final-score duration, team colors, and bug position all come from the JSON. Set any duration to `0` to skip that segment.
 

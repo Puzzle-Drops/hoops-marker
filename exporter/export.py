@@ -554,6 +554,122 @@ def _pulse_curve(dt: float) -> float:
     return max(0.0, 1.0 - (dt - peak) / (PULSE_DURATION - peak))
 
 
+def build_chunks(entries: List[Dict], config: Dict, source_duration: float) -> List[Dict]:
+    """Group entries whose [t-preRoll, t+postRoll] windows overlap into merged
+    chunks so the same footage never plays twice. Two windows overlap when the
+    next one's start is ≤ the previous one's end (touching counts as overlap,
+    to avoid single-frame gaps). Entries are assumed sorted by basket time.
+
+    Returns a list of {start, end, events: [entry, ...]}."""
+    pre = float(config.get('preRoll', 4))
+    post = float(config.get('postRoll', 1))
+    chunks: List[Dict] = []
+    for ent in entries:
+        t_basket = float(ent['mark']['t'])
+        s = max(0.0, t_basket - pre)
+        e = min(source_duration, t_basket + post)
+        if e <= s:
+            continue
+        if chunks and s <= chunks[-1]['end']:
+            chunks[-1]['end'] = max(chunks[-1]['end'], e)
+            chunks[-1]['events'].append(ent)
+        else:
+            chunks.append({'start': s, 'end': e, 'events': [ent]})
+    return chunks
+
+
+def make_chunk_clip(source: VideoFileClip,
+                    chunk: Dict,
+                    config: Dict,
+                    teams: Dict,
+                    bug_scale: float = 1.0):
+    """Render one merged chunk: a single sub-clip that covers all events whose
+    windows were overlap-merged. The score bug transitions through every event
+    at its own basket time inside the combined footage."""
+    start = chunk['start']
+    end = chunk['end']
+    events: List[Dict] = sorted(chunk['events'], key=lambda e: float(e['mark']['t']))
+    if end <= start or not events:
+        return None
+
+    sub = source.subclip(start, end)
+    position = config.get('bugPosition', 'top-left')
+
+    # Score to show before the first event fires (pre-roll before the first basket)
+    baseline_prev = dict(events[0]['prev'])
+    # Pre-extract event fields so the per-frame transform stays tight
+    ev_times = [float(e['mark']['t']) for e in events]
+    ev_teams = [e['mark'].get('team') for e in events]
+    ev_prev  = [e['prev'] for e in events]
+    ev_new   = [e['new']  for e in events]
+
+    cache: Dict[Tuple, Image.Image] = {}
+
+    def get_bug(score_tuple, highlight_t, intensity):
+        key = (score_tuple, highlight_t, round(intensity, 2))
+        img = cache.get(key)
+        if img is None:
+            score_dict = {1: score_tuple[0], 2: score_tuple[1]}
+            img = render_score_bug(
+                score_dict, teams, bug_scale=bug_scale,
+                highlight_team=highlight_t, highlight_intensity=intensity,
+            )
+            cache[key] = img
+        return img
+
+    def transform(get_frame, clip_t):
+        global_t = start + clip_t
+
+        # Latest event whose basket time has already passed.
+        latest = -1
+        for i, t_b in enumerate(ev_times):
+            if t_b <= global_t:
+                latest = i
+            else:
+                break
+
+        if latest < 0:
+            # Before any basket in this chunk: show baseline (prev of first).
+            score = dict(baseline_prev)
+            intensity = 0.0
+            highlight_t = None
+        else:
+            team = ev_teams[latest]
+            dt = global_t - ev_times[latest]
+            if team in (1, 2):
+                if dt < ANIMATION_DURATION:
+                    progress = dt / ANIMATION_DURATION
+                    diff = ev_new[latest][team] - ev_prev[latest][team]
+                    interp = int(round(ev_prev[latest][team] + diff * progress))
+                    score = dict(ev_prev[latest])
+                    score[team] = interp
+                    intensity = _pulse_curve(dt)
+                    highlight_t = team
+                elif dt < PULSE_DURATION:
+                    score = dict(ev_new[latest])
+                    intensity = _pulse_curve(dt)
+                    highlight_t = team
+                else:
+                    score = dict(ev_new[latest])
+                    intensity = 0.0
+                    highlight_t = None
+            else:
+                # Non-scoring mark — no animation, no pulse. Score = running total.
+                score = dict(ev_new[latest])
+                intensity = 0.0
+                highlight_t = None
+
+        bug = get_bug((score[1], score[2]), highlight_t, intensity)
+
+        frame = get_frame(clip_t)
+        pil_frame = Image.fromarray(frame).convert('RGBA')
+        pos = bug_xy(position, pil_frame.size, bug.size)
+        pil_frame.alpha_composite(bug, dest=pos)
+        return np.array(pil_frame.convert('RGB'))
+
+    return sub.fl(transform, apply_to=[])
+
+
 # =============================================================================
 # FINAL SCORE SCREEN
 # =============================================================================
@@ -1077,6 +1193,7 @@ Examples:
 
     # Build clips
     entries = compute_running_scores(marks)
+    chunks = build_chunks(entries, config, source.duration)
     clips = []
 
     # Pre-game intro
@@ -1088,15 +1205,22 @@ Examples:
             teams_registry=teams_registry,
         ))
 
-    for i, entry in enumerate(entries):
-        mk = entry['mark']
-        label = (
-            f"+{mk['points']} T{mk['team']}" if mk.get('team') in (1, 2)
-            else "MARK"
-        )
-        print(f"  [{i+1}/{len(entries)}]  t={mk['t']:.2f}s  {label}  "
-              f"→ score after: {entry['new'][1]}–{entry['new'][2]}")
-        clip = make_highlight_clip(source, entry, config, teams, bug_scale=args.bug_scale)
+    merged_away = len(entries) - sum(len(c['events']) == 1 for c in chunks)
+    if merged_away:
+        print(f"  Merged {merged_away} overlapping window(s) → {len(chunks)} clip(s)")
+    for i, chunk in enumerate(chunks):
+        labels = []
+        for ent in chunk['events']:
+            mk = ent['mark']
+            labels.append(
+                f"+{mk['points']} T{mk['team']}" if mk.get('team') in (1, 2)
+                else "MARK"
+            )
+        final_new = chunk['events'][-1]['new']
+        print(f"  [{i+1}/{len(chunks)}]  {chunk['start']:.2f}–{chunk['end']:.2f}s  "
+              f"({len(chunk['events'])} event{'s' if len(chunk['events'])>1 else ''}: "
+              f"{', '.join(labels)})  → score: {final_new[1]}–{final_new[2]}")
+        clip = make_chunk_clip(source, chunk, config, teams, bug_scale=args.bug_scale)
         if clip is not None:
             clips.append(clip)
 
