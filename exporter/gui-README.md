@@ -53,12 +53,14 @@ You may need to `chmod +x hoops-exporter.command` in a terminal first.
 3. **Pick an output file** — defaults to `highlights.mp4` on your Desktop.
 4. **Tweak settings if you want:**
    - **Pre-roll / Post-roll** — seconds before/after each scoring moment to include
+   - **Pre-game screen** — how long the intro "VS" card stays on screen (set 0 to skip it)
    - **Final screen** — how long the big final-score card stays on screen (set 0 to skip)
    - **Score bug scale** — 1.0 for 1080p source, try 1.3–1.5 for 4K, 0.7–0.8 for 720p
    - **FPS** — usually 30. Drop to 24 for a more cinematic feel if your source supports it.
    - **Quality (CRF)** — lower means better but bigger. 18 ≈ visually lossless, 20–23 is a good balance, 28 gets small fast.
    - **Preset** — trade render speed vs. file size. `ultrafast` for a quick preview, `medium` default, `slow` for best compression.
    - **Keep downloaded YT file** — by default the app deletes the YouTube download after export. Tick this to keep it.
+   - **Team presets (auto-detected)** — a status line shows whether `teams.json` was found. Drop the file at `assets/teams.json` next to the exporter or next to your markings JSON and it gets picked up automatically. See [`assets/teams-README.md`](../assets/teams-README.md) for the schema.
 5. **Hit Start Export.** Progress shows up in the log panel at the bottom. Go grab a coffee — rendering isn't instant.
 6. When it finishes, a dialog asks if you want to reveal the file in Finder/Explorer.
 

@@ -7,15 +7,17 @@
   "teams": {
     "1": {
       "name": "Lakers",
-      "color1": "#E03A3E",
-      "color2": "#8B0000",
-      "gradient": true
+      "color1": "#552583",
+      "color2": "#FDB927",
+      "gradient": true,
+      "teamId": "lakers"
     },
     "2": {
       "name": "Bucks",
-      "color1": "#007A33",
-      "color2": "#004D20",
-      "gradient": true
+      "color1": "#00471B",
+      "color2": "#EEE1C6",
+      "gradient": true,
+      "teamId": "bucks"
     }
   },
   "config": {
@@ -48,5 +50,5 @@
       "points": 2
     }
   ],
-  "createdAt": "2026-04-20T15:10:01.139Z"
+  "createdAt": "2026-04-20T15:19:41.758Z"
 }

@@ -42,25 +42,40 @@
   #localVideo { width: 100%; height: 100%; object-fit: contain; display: block; }
   #youtubePlayer { width: 100%; height: 100%; }
   .hidden { display: none !important; }
-  .score-bug { position: absolute; z-index: 10; display: flex; flex-direction: column; box-shadow: 0 4px 16px rgba(0,0,0,0.5); border-radius: 6px; overflow: hidden; min-width: 180px; pointer-events: none; user-select: none; }
+  .score-bug { position: absolute; z-index: 10; display: flex; flex-direction: column; box-shadow: 0 6px 20px rgba(0,0,0,0.55); border-radius: 7px; overflow: hidden; min-width: 210px; pointer-events: none; user-select: none; }
   .score-bug.pos-top-left { top: 16px; left: 16px; }
   .score-bug.pos-bottom-left { bottom: 16px; left: 16px; }
   .score-bug.pos-top-right { top: 16px; right: 16px; }
   .score-bug.pos-bottom-right { bottom: 16px; right: 16px; }
-  .score-bug .team-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 12px; color: #fff; font-weight: 700; font-size: 15px; letter-spacing: 0.5px; min-width: 160px; text-shadow: 0 1px 2px rgba(0,0,0,0.3); transition: transform 0.2s; }
+  .score-bug .team-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; color: #fff; font-weight: 700; font-size: 17px; letter-spacing: 0.5px; min-width: 180px; text-shadow: 0 1px 2px rgba(0,0,0,0.3); transition: transform 0.2s; }
+  .score-bug .team-row + .team-row { border-top: 1px solid rgba(0,0,0,0.22); }
   .score-bug .team-row.pulse { animation: scorePulse 0.5s ease-out; }
   @keyframes scorePulse { 0% { transform: scale(1); } 30% { transform: scale(1.08); filter: brightness(1.3); } 100% { transform: scale(1); filter: brightness(1); } }
-  .score-bug .team-logo { height: 24px; width: auto; max-width: 36px; margin-right: 8px; flex-shrink: 0; display: none; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4)); }
+  .score-bug .team-logo { height: 30px; width: auto; max-width: 44px; margin-right: 10px; flex-shrink: 0; display: none; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4)); }
   .score-bug .team-logo.visible { display: inline-block; }
   .score-bug .team-name { flex: 1; }
-  .score-bug .team-score { font-family: var(--mono); font-size: 17px; font-weight: 800; margin-left: 14px; min-width: 24px; text-align: right; }
-  .final-score { position: absolute; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); }
-  .final-score-content { display: flex; align-items: center; gap: 40px; animation: finalScoreIn 0.5s ease-out; }
-  @keyframes finalScoreIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
-  .final-score-team { text-align: center; padding: 30px 40px; border-radius: 12px; color: white; min-width: 200px; }
-  .final-score-team .name { font-size: 22px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; text-shadow: 0 2px 4px rgba(0,0,0,0.4); }
-  .final-score-team .score { font-family: var(--mono); font-size: 96px; font-weight: 900; line-height: 1; margin-top: 8px; text-shadow: 0 4px 12px rgba(0,0,0,0.5); }
-  .final-score-dash { font-size: 64px; font-weight: 300; color: #fff; opacity: 0.5; }
+  .score-bug .team-score { font-family: var(--mono); font-size: 20px; font-weight: 800; margin-left: 16px; min-width: 28px; text-align: right; }
+  .broadcast-overlay { position: absolute; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at center, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.85) 100%); backdrop-filter: blur(8px); }
+  .overlay-league-logo { position: absolute; top: 24px; left: 50%; transform: translateX(-50%); max-height: 72px; max-width: 260px; width: auto; height: auto; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.55)); display: none; }
+  .overlay-league-logo.visible { display: block; }
+  .overlay-content { display: flex; align-items: center; gap: 48px; animation: finalScoreIn 0.5s ease-out; }
+  @keyframes finalScoreIn { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
+  .overlay-team { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 22px 30px 20px; border-radius: 14px; color: #fff; min-width: 220px; box-shadow: 0 10px 40px rgba(0,0,0,0.45); }
+  .overlay-team-logo { max-height: 92px; max-width: 150px; width: auto; height: auto; object-fit: contain; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.45)); display: none; }
+  .overlay-team-logo.visible { display: block; }
+  .overlay-team .name { font-size: 22px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; text-shadow: 0 2px 4px rgba(0,0,0,0.4); }
+  .overlay-team .score { font-family: var(--mono); font-size: 84px; font-weight: 900; line-height: 1; text-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+  .overlay-team .players { display: flex; gap: 12px; margin-top: 4px; }
+  .overlay-team .player { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .overlay-team .player-photo-wrap { width: 64px; height: 78px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.18); border-radius: 8px; border: 2px solid rgba(255,255,255,0.85); box-shadow: 0 2px 8px rgba(0,0,0,0.4); overflow: hidden; }
+  .overlay-team .player-photo { max-height: 100%; max-width: 100%; width: auto; height: auto; object-fit: contain; }
+  .overlay-team .player-placeholder { font-size: 26px; font-weight: 700; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.6); }
+  .overlay-team .player-name { font-size: 11px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; text-shadow: 0 1px 2px rgba(0,0,0,0.6); }
+  .overlay-dash { font-size: 64px; font-weight: 300; color: #fff; opacity: 0.5; }
+  .overlay-vs { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 72px; font-weight: 800; letter-spacing: 6px; color: #fff; opacity: 0.9; text-shadow: 0 4px 12px rgba(0,0,0,0.55); }
+  .tip-off-badge { position: absolute; top: 110px; left: 50%; transform: translateX(-50%); font-size: 12px; letter-spacing: 4px; font-weight: 700; color: #fff; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.3); padding: 6px 18px; border-radius: 20px; text-shadow: 0 1px 2px rgba(0,0,0,0.4); text-transform: uppercase; }
+  /* Keep legacy names too so any lingering selectors don't break */
+  .final-score { position: absolute; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0); }
   .transport { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
   .transport .time { font-family: var(--mono); font-size: 13px; color: var(--text-dim); min-width: 130px; }
   .transport .time .current { color: var(--text); }
@@ -168,11 +183,39 @@
         <div class="team-row" id="team1Row"><img class="team-logo" id="team1LogoBug" alt=""><span class="team-name" id="team1Name">TEAM 1</span><span class="team-score" id="team1Score">0</span></div>
         <div class="team-row" id="team2Row"><img class="team-logo" id="team2LogoBug" alt=""><span class="team-name" id="team2Name">TEAM 2</span><span class="team-score" id="team2Score">0</span></div>
       </div>
-      <div class="final-score hidden" id="finalScore">
-        <div class="final-score-content">
-          <div class="final-score-team" id="finalTeam1"><div class="name">TEAM 1</div><div class="score">0</div></div>
-          <div class="final-score-dash">—</div>
-          <div class="final-score-team" id="finalTeam2"><div class="name">TEAM 2</div><div class="score">0</div></div>
+      <div class="broadcast-overlay hidden" id="finalScore">
+        <img class="overlay-league-logo" id="finalLeagueLogo" alt="">
+        <div class="overlay-content">
+          <div class="overlay-team" id="finalTeam1">
+            <img class="overlay-team-logo" id="finalTeam1Logo" alt="">
+            <div class="name">TEAM 1</div>
+            <div class="score">0</div>
+            <div class="players" id="finalTeam1Players"></div>
+          </div>
+          <div class="overlay-dash">—</div>
+          <div class="overlay-team" id="finalTeam2">
+            <img class="overlay-team-logo" id="finalTeam2Logo" alt="">
+            <div class="name">TEAM 2</div>
+            <div class="score">0</div>
+            <div class="players" id="finalTeam2Players"></div>
+          </div>
+        </div>
+      </div>
+      <div class="broadcast-overlay hidden" id="preGame">
+        <img class="overlay-league-logo" id="preGameLeagueLogo" alt="">
+        <div class="tip-off-badge">TIP-OFF</div>
+        <div class="overlay-content">
+          <div class="overlay-team" id="preGameTeam1">
+            <img class="overlay-team-logo" id="preGameTeam1Logo" alt="">
+            <div class="name">TEAM 1</div>
+            <div class="players" id="preGameTeam1Players"></div>
+          </div>
+          <div class="overlay-vs">VS</div>
+          <div class="overlay-team" id="preGameTeam2">
+            <img class="overlay-team-logo" id="preGameTeam2Logo" alt="">
+            <div class="name">TEAM 2</div>
+            <div class="players" id="preGameTeam2Players"></div>
+          </div>
         </div>
       </div>
       <div class="selection-hint hidden" id="selectionHint">← → to nudge · ESC to deselect</div>
@@ -181,6 +224,7 @@
       <button id="playBtn" onclick="togglePlay()">▶</button>
       <div class="time"><span class="current" id="currentTime">0:00.0</span> / <span id="totalTime">0:00</span></div>
       <div class="scrubber" id="scrubber"><div class="scrubber-fill" id="scrubberFill" style="width:0%"></div></div>
+      <button onclick="togglePreviewPregame()" title="Toggle pre-game preview">🏁 Intro</button>
       <button onclick="togglePreviewFinal()" title="Toggle final-score preview">🏆 Final</button>
     </div>
     <div class="mark-actions" id="markActions">
@@ -234,6 +278,7 @@
       <h2>Clip Settings</h2>
       <div class="setting-row"><label>Pre-roll (sec before basket)</label><input type="number" id="preRoll" value="4" min="0" max="30" step="0.5"></div>
       <div class="setting-row"><label>Post-roll (sec after basket)</label><input type="number" id="postRoll" value="1" min="0" max="30" step="0.5"></div>
+      <div class="setting-row"><label>Pre-game screen duration</label><input type="number" id="preGameDuration" value="3" min="0" max="15" step="0.5"></div>
       <div class="setting-row"><label>Final score duration</label><input type="number" id="finalDuration" value="3" min="0" max="15" step="0.5"></div>
       <div class="setting-row"><label>Skip amount (sec)</label><input type="number" id="skipAmount" value="5" min="0.5" max="60" step="0.5"></div>
       <div class="setting-row"><label>Nudge step (sec)</label><input type="number" id="nudgeStep" value="0.1" min="0.01" max="1" step="0.01"></div>
@@ -284,11 +329,11 @@ const state = {
   mode: null, videoId: null, duration: 0, currentTime: 0, isPlaying: false,
   ytPlayer: null, ytReady: false,
   teams: {
-    1: { name: 'Team 1', color1: '#E03A3E', color2: '#8B0000', gradient: true, teamId: null, logo: null },
-    2: { name: 'Team 2', color1: '#007A33', color2: '#004D20', gradient: true, teamId: null, logo: null }
+    1: { name: 'Team 1', color1: '#E03A3E', color2: '#8B0000', gradient: true, teamId: null, logo: null, players: null },
+    2: { name: 'Team 2', color1: '#007A33', color2: '#004D20', gradient: true, teamId: null, logo: null, players: null }
   },
-  config: { preRoll: 4, postRoll: 1, finalDuration: 3, skipAmount: 5, nudgeStep: 0.1, bugPosition: 'top-left' },
-  marks: [], selectedMarkId: null, previewingFinal: false,
+  config: { preRoll: 4, postRoll: 1, preGameDuration: 3, finalDuration: 3, skipAmount: 5, nudgeStep: 0.1, bugPosition: 'top-left' },
+  marks: [], selectedMarkId: null, previewingFinal: false, previewingPregame: false,
   displayedScore: { 1: 0, 2: 0 }
 };
 let markIdCounter = 1;
@@ -299,6 +344,7 @@ let pendingImport = null;
 const $ = id => document.getElementById(id);
 const localVideo = $('localVideo'), ytContainer = $('youtubePlayer'), playerWrap = $('playerWrap');
 const emptyMsg = $('emptyMsg'), scoreBug = $('scoreBug'), finalScore = $('finalScore');
+const preGameOverlay = $('preGame');
 const team1Row = $('team1Row'), team2Row = $('team2Row');
 const team1NameEl = $('team1Name'), team2NameEl = $('team2Name');
 const team1ScoreEl = $('team1Score'), team2ScoreEl = $('team2Score');
@@ -323,6 +369,9 @@ async function loadTeamsRegistry(){
     if(!res.ok) throw new Error('HTTP ' + res.status);
     teamsRegistry = await res.json();
     populateTeamDropdowns();
+    // Registry provides player rosters + league logo — re-render overlays so
+    // those slots populate even before the user picks a preset.
+    renderTeamsUI();
   }catch(e){
     console.warn('[teams.json] not loaded:', e.message || e);
     // No toast — this is OK to fail silently (user can still configure manually)
@@ -359,6 +408,7 @@ function applyTeamPreset(n, presetId){
     // Picked "Custom" — clear preset association but keep current name/colors
     state.teams[n].teamId = null;
     state.teams[n].logo = null;
+    state.teams[n].players = null;
     renderTeamsUI();
     showToast(`Team ${n}: custom`, 'var(--text-dim)');
     return;
@@ -371,6 +421,7 @@ function applyTeamPreset(n, presetId){
   state.teams[n].color2 = preset.color2;
   state.teams[n].teamId = preset.id;
   state.teams[n].logo = resolveLogoPath(preset.logo);
+  state.teams[n].players = Array.isArray(preset.players) ? [...preset.players] : null;
   // Sync inputs
   $(`team${n}NameInput`).value = preset.name;
   $(`team${n}Color1`).value = preset.color1;
@@ -530,16 +581,82 @@ function renderTeamsUI(){
     $(`team${n}Preview`).style.background = gradient;
     $(`team${n}Preview`).textContent = name;
 
-    // Final score card
+    // Final-score overlay card
     const finalT = n===1 ? finalTeam1 : finalTeam2;
     finalT.style.background = gradient;
     finalT.querySelector('.name').textContent = name;
+    setLogoImg($(`finalTeam${n}Logo`), team.logo);
+
+    // Pre-game overlay card
+    const preT = $(`preGameTeam${n}`);
+    if(preT){
+      preT.style.background = gradient;
+      preT.querySelector('.name').textContent = name;
+    }
+    setLogoImg($(`preGameTeam${n}Logo`), team.logo);
+
+    // Player rows (both overlays)
+    renderPlayerRow($(`finalTeam${n}Players`), team);
+    renderPlayerRow($(`preGameTeam${n}Players`), team);
 
     // Mark action buttons + column headers
     $(`markT${n}Header`).style.background = gradient;
     $(`markT${n}Header`).textContent = name;
     $(`markT${n}_3`).style.background = gradient;
     $(`markT${n}_2`).style.background = gradient;
+  }
+  renderLeagueLogos();
+}
+
+function renderLeagueLogos(){
+  const league = (teamsRegistry && teamsRegistry.league) || null;
+  const logoSrc = league && league.logo ? resolveLogoPath(league.logo) : null;
+  setLogoImg($('finalLeagueLogo'), logoSrc);
+  setLogoImg($('preGameLeagueLogo'), logoSrc);
+}
+
+function renderPlayerRow(container, team){
+  if(!container) return;
+  container.innerHTML = '';
+  const preset = (team.teamId && teamsRegistry)
+    ? teamsRegistry.teams.find(t => t.id === team.teamId) : null;
+  const names = (team.players && team.players.length)
+    ? team.players
+    : (preset && preset.players) ? preset.players : [];
+  if(!names.length) return;
+  for(const pname of names){
+    const pWrap = document.createElement('div');
+    pWrap.className = 'player';
+    const photoWrap = document.createElement('div');
+    photoWrap.className = 'player-photo-wrap';
+    const pInfo = teamsRegistry && teamsRegistry.players
+      ? teamsRegistry.players.find(p => (p.name||'').toLowerCase() === pname.toLowerCase())
+      : null;
+    if(pInfo && pInfo.photo){
+      const img = document.createElement('img');
+      img.className = 'player-photo';
+      img.alt = pname;
+      img.src = resolveLogoPath(pInfo.photo);
+      img.onerror = () => {
+        photoWrap.innerHTML = '';
+        const ph = document.createElement('div');
+        ph.className = 'player-placeholder';
+        ph.textContent = (pname[0]||'?').toUpperCase();
+        photoWrap.appendChild(ph);
+      };
+      photoWrap.appendChild(img);
+    } else {
+      const ph = document.createElement('div');
+      ph.className = 'player-placeholder';
+      ph.textContent = (pname[0]||'?').toUpperCase();
+      photoWrap.appendChild(ph);
+    }
+    const nameEl = document.createElement('div');
+    nameEl.className = 'player-name';
+    nameEl.textContent = pname;
+    pWrap.appendChild(photoWrap);
+    pWrap.appendChild(nameEl);
+    container.appendChild(pWrap);
   }
 }
 
@@ -558,8 +675,20 @@ function updateFinalScore(){
 }
 function togglePreviewFinal(){
   state.previewingFinal = !state.previewingFinal;
+  if(state.previewingFinal && state.previewingPregame){
+    state.previewingPregame = false;
+    preGameOverlay.classList.add('hidden');
+  }
   finalScore.classList.toggle('hidden', !state.previewingFinal);
   if(state.previewingFinal) updateFinalScore();
+}
+function togglePreviewPregame(){
+  state.previewingPregame = !state.previewingPregame;
+  if(state.previewingPregame && state.previewingFinal){
+    state.previewingFinal = false;
+    finalScore.classList.add('hidden');
+  }
+  preGameOverlay.classList.toggle('hidden', !state.previewingPregame);
 }
 $('posOptions').addEventListener('click', e=>{
   const btn = e.target.closest('button'); if(!btn) return;
@@ -589,7 +718,7 @@ function wireTeamInputs(n){
   sel.addEventListener('change', ()=>{ applyTeamPreset(n, sel.value); });
 }
 wireTeamInputs(1); wireTeamInputs(2);
-['preRoll','postRoll','finalDuration','skipAmount','nudgeStep'].forEach(k=>{
+['preRoll','postRoll','preGameDuration','finalDuration','skipAmount','nudgeStep'].forEach(k=>{
   const el = $(k);
   el.addEventListener('input', ()=>{ const v=parseFloat(el.value); if(!isNaN(v)&&v>=0) state.config[k]=v; });
 });
@@ -703,6 +832,7 @@ function exportJSON(){
     };
     // Only include teamId when associated with a preset
     if(t.teamId) teamsOut[n].teamId = t.teamId;
+    if(Array.isArray(t.players) && t.players.length) teamsOut[n].players = [...t.players];
   }
   const data = {
     version: 1,
@@ -786,11 +916,15 @@ function applyImport(){
       state.teams[n].color2  = src.color2 || state.teams[n].color2;
       if('gradient' in src) state.teams[n].gradient = !!src.gradient;
       state.teams[n].teamId  = src.teamId || null;
-      // Re-resolve logo from registry if the JSON referenced a preset
+      // Re-resolve logo + players from registry if the JSON referenced a preset
       state.teams[n].logo = null;
+      state.teams[n].players = Array.isArray(src.players) ? [...src.players] : null;
       if(state.teams[n].teamId && teamsRegistry){
         const preset = teamsRegistry.teams.find(t => t.id === state.teams[n].teamId);
-        if(preset) state.teams[n].logo = resolveLogoPath(preset.logo);
+        if(preset){
+          state.teams[n].logo = resolveLogoPath(preset.logo);
+          if(!state.teams[n].players) state.teams[n].players = [...(preset.players||[])];
+        }
       }
       // Sync inputs
       $(`team${n}NameInput`).value  = state.teams[n].name;
@@ -802,7 +936,7 @@ function applyImport(){
 
   if(wantConfig && data.config){
     Object.assign(state.config, data.config);
-    ['preRoll','postRoll','finalDuration','skipAmount','nudgeStep'].forEach(k=>{
+    ['preRoll','postRoll','preGameDuration','finalDuration','skipAmount','nudgeStep'].forEach(k=>{
       if(k in state.config) $(k).value = state.config[k];
     });
     if(state.config.bugPosition){

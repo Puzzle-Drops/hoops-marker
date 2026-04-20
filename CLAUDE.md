@@ -8,7 +8,7 @@ A two-part toolchain for marking basketball video and producing highlight reels 
 
 **Live site:** `https://<username>.github.io/<reponame>/` (GitHub Pages, `main` branch, served from repo root)
 
-**Status:** Part 1 (browser marking tool) shipped. Part 2 (Python exporter) not yet built.
+**Status:** Part 1 (browser marking tool) shipped with team presets, pre-game/final overlays, and clickable mark buttons. Part 2 (Python exporter with matching pre-game + final screens, league + team logos, aspect-ratio player portraits) shipped.
 
 ---
 
@@ -20,7 +20,7 @@ The user wants a fast, keyboard-driven workflow to:
 2. Tap hotkeys at each scoring moment to log baskets with team + point value
 3. Configure team names and colors/gradients for a broadcast-style score bug
 4. Export the markings as JSON
-5. Separately, feed the video + JSON into a Python exporter that cuts a highlight reel — each clip showing pre-roll seconds before a basket, the basket itself with the score bug animating from the old total to the new total, and post-roll seconds after. Final screen shows the final score blown up in the center.
+5. Separately, feed the video + JSON into a Python exporter that cuts a highlight reel: optional **pre-game intro** (league logo + both team cards with logos, names, player portraits, and a "VS"), then each highlight clip showing pre-roll seconds before a basket, the basket itself with the score bug animating from the old total to the new total, and post-roll seconds after, then a matching **final-score** screen (same visual language, scores in place of "VS"). Team logos, league logo, and player portraits are sourced from `assets/teams.json` — aspect ratio preserved for every image.
 
 The marking tool lives in the browser (this repo). The exporter lives as a Python script run locally on the user's machine.
 

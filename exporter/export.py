@@ -272,6 +272,54 @@ def _crop_square_circular(photo: Image.Image, size: int) -> Image.Image:
     return out
 
 
+def _fit_rounded_rect(photo: Image.Image, max_h: int, max_w: int,
+                      radius_ratio: float = 0.16) -> Image.Image:
+    """Resize `photo` to fit inside (max_w, max_h) preserving its aspect ratio,
+    then round the corners. Returns an RGBA image sized exactly to the fit
+    result (not the full box), so callers can center it however they like."""
+    pw, ph = photo.size
+    if pw <= 0 or ph <= 0 or max_h <= 0 or max_w <= 0:
+        return Image.new('RGBA', (1, 1), (0, 0, 0, 0))
+    scale = min(max_w / pw, max_h / ph)
+    new_w = max(1, int(round(pw * scale)))
+    new_h = max(1, int(round(ph * scale)))
+    photo = photo.resize((new_w, new_h), Image.LANCZOS)
+    radius = max(2, int(min(new_w, new_h) * radius_ratio))
+    mask = Image.new('L', (new_w, new_h), 0)
+    ImageDraw.Draw(mask).rounded_rectangle(
+        [(0, 0), (new_w - 1, new_h - 1)], radius=radius, fill=255
+    )
+    out = Image.new('RGBA', (new_w, new_h), (0, 0, 0, 0))
+    out.paste(photo, (0, 0), mask)
+    return out
+
+
+def _render_rect_placeholder(initial: str, w: int, h: int,
+                             bg_rgb: Tuple[int, int, int],
+                             radius_ratio: float = 0.16) -> Image.Image:
+    """Fallback rounded-rectangle tile with a colored background + initial.
+    Used when a player photo is missing."""
+    w = max(1, w)
+    h = max(1, h)
+    img = Image.new('RGBA', (w, h), (0, 0, 0, 0))
+    radius = max(2, int(min(w, h) * radius_ratio))
+    mask = Image.new('L', (w, h), 0)
+    ImageDraw.Draw(mask).rounded_rectangle(
+        [(0, 0), (w - 1, h - 1)], radius=radius, fill=255
+    )
+    bg = Image.new('RGBA', (w, h), (bg_rgb[0], bg_rgb[1], bg_rgb[2], 255))
+    img.paste(bg, (0, 0), mask)
+    draw = ImageDraw.Draw(img)
+    font = load_font(max(12, int(min(w, h) * 0.5)))
+    letter = (initial or '?')[:1].upper()
+    bb = draw.textbbox((0, 0), letter, font=font)
+    iw = bb[2] - bb[0]
+    ih = bb[3] - bb[1]
+    draw.text(((w - iw) // 2, (h - ih) // 2 - bb[1]),
+              letter, fill=(255, 255, 255, 255), font=font)
+    return img
+
+
 # =============================================================================
 # SCORE BUG RENDERING
 # =============================================================================
@@ -284,14 +332,14 @@ def render_score_bug(score: Dict[int, int],
     """Render the two-row score bug as an RGBA PIL image with rounded corners.
     If a team has a `logo` key pointing to an image file, it's drawn on the
     left side of that team's row."""
-    width = int(260 * bug_scale)
-    row_h = int(44 * bug_scale)
-    radius = int(8 * bug_scale)
-    pad_x = int(12 * bug_scale)
-    logo_size = int(row_h * 0.75)
-    logo_gap = int(8 * bug_scale)
-    name_size = max(10, int(17 * bug_scale))
-    score_size = max(12, int(22 * bug_scale))
+    width = int(300 * bug_scale)
+    row_h = int(52 * bug_scale)
+    radius = int(9 * bug_scale)
+    pad_x = int(14 * bug_scale)
+    logo_size = int(row_h * 0.78)
+    logo_gap = int(10 * bug_scale)
+    name_size = max(12, int(20 * bug_scale))
+    score_size = max(14, int(26 * bug_scale))
 
     total_h = row_h * 2
     canvas = Image.new('RGBA', (width, total_h), (0, 0, 0, 0))
@@ -628,49 +676,13 @@ def make_final_screen(teams: Dict, score: Dict[int, int],
                                (x + (card_w - sw) // 2, score_y - sb[1]),
                                score_text, score_font)
 
-        # 4. Player photos
+        # 4. Player photos (rounded-rectangle tiles, aspect ratio preserved)
         if has_players:
-            n = len(players)
-            photo_size = int(card_h * 0.14)
-            spacing = int(card_w * 0.04)
-            total_row_w = n * photo_size + (n - 1) * spacing
-            # Clamp if too wide for card
-            if total_row_w > card_w - 20:
-                photo_size = max(24, (card_w - 20 - (n - 1) * spacing) // n)
-                total_row_w = n * photo_size + (n - 1) * spacing
-
-            row_x = x + (card_w - total_row_w) // 2
-            row_y = card_y + int(card_h * z_players_y)
-
-            for pi, player_name in enumerate(players):
-                px = row_x + pi * (photo_size + spacing)
-
-                player_info = find_player_in_registry(player_name, teams_registry)
-                avatar: Optional[Image.Image] = None
-                if player_info and player_info.get('photo_abs'):
-                    photo = _load_rgba_cached(player_info['photo_abs'])
-                    if photo is not None:
-                        avatar = _crop_square_circular(photo, photo_size)
-                if avatar is None:
-                    avatar = _render_initial_avatar(player_name, photo_size, c2)
-
-                img.paste(avatar, (px, row_y), avatar)
-
-                # White ring around photo
-                ring = ImageDraw.Draw(img)
-                ring.ellipse(
-                    [(px - 2, row_y - 2),
-                     (px + photo_size + 1, row_y + photo_size + 1)],
-                    outline=(255, 255, 255), width=3
-                )
-
-                # Player name below
-                pnb = draw.textbbox((0, 0), player_name, font=player_font)
-                pnw = pnb[2] - pnb[0]
-                pname_y = row_y + photo_size + 10
-                _draw_text_with_shadow(draw,
-                                       (px + (photo_size - pnw) // 2, pname_y - pnb[1]),
-                                       player_name, player_font)
+            _paste_player_row(
+                img, draw, players, teams_registry, player_font,
+                x=x, card_w=card_w, card_y=card_y, card_h=card_h,
+                z_players_y=z_players_y, team_color2=c2,
+            )
 
     # --- Dash between cards (aligned with score row of the cards) ---
     dash = '—'
@@ -681,6 +693,211 @@ def make_final_screen(teams: Dict, score: Dict[int, int],
     target_score_y_center = card_y + int(card_h * 0.42) + (score_size // 2)
     dash_y = target_score_y_center - dh // 2 - db[1]
     draw.text(((w - dw) // 2, dash_y), dash, fill=(150, 150, 160), font=dash_font)
+
+    return ImageClip(np.array(img)).set_duration(duration)
+
+
+def _paste_player_row(img: Image.Image, draw: ImageDraw.ImageDraw,
+                      players: List[str], teams_registry: Optional[Dict],
+                      player_font: ImageFont.ImageFont,
+                      x: int, card_w: int, card_y: int, card_h: int,
+                      z_players_y: float,
+                      team_color2: Tuple[int, int, int]) -> None:
+    """Draw a row of player photos (rounded-rectangle, aspect-ratio preserved)
+    with names below, horizontally centered within a card. Mutates `img`."""
+    n = len(players)
+    if n <= 0:
+        return
+    tile_h = int(card_h * 0.18)
+    tile_w = int(card_h * 0.14)  # portrait-biased slot; photos fit inside
+    spacing = int(card_w * 0.04)
+    total_row_w = n * tile_w + (n - 1) * spacing
+    if total_row_w > card_w - 20:
+        tile_w = max(28, (card_w - 20 - (n - 1) * spacing) // n)
+        total_row_w = n * tile_w + (n - 1) * spacing
+
+    row_x = x + (card_w - total_row_w) // 2
+    row_y = card_y + int(card_h * z_players_y)
+
+    for pi, player_name in enumerate(players):
+        slot_x = row_x + pi * (tile_w + spacing)
+
+        player_info = find_player_in_registry(player_name, teams_registry)
+        fitted: Optional[Image.Image] = None
+        if player_info and player_info.get('photo_abs'):
+            photo = _load_rgba_cached(player_info['photo_abs'])
+            if photo is not None:
+                fitted = _fit_rounded_rect(photo, tile_h, tile_w)
+        if fitted is None:
+            fitted = _render_rect_placeholder(player_name, tile_w, tile_h, team_color2)
+
+        # Center the fitted image inside the (tile_w × tile_h) slot
+        fw, fh = fitted.size
+        fx = slot_x + (tile_w - fw) // 2
+        fy = row_y + (tile_h - fh) // 2
+        img.paste(fitted, (fx, fy), fitted)
+
+        # Thin rounded-rect ring hugging the actual photo bounds
+        ring_radius = max(2, int(min(fw, fh) * 0.16))
+        ImageDraw.Draw(img).rounded_rectangle(
+            [(fx - 2, fy - 2), (fx + fw + 1, fy + fh + 1)],
+            radius=ring_radius + 2,
+            outline=(255, 255, 255, 235), width=2,
+        )
+
+        # Player name below the tile slot
+        pnb = draw.textbbox((0, 0), player_name, font=player_font)
+        pnw = pnb[2] - pnb[0]
+        pname_y = row_y + tile_h + 10
+        _draw_text_with_shadow(
+            draw, (slot_x + (tile_w - pnw) // 2, pname_y - pnb[1]),
+            player_name, player_font,
+        )
+
+
+def make_pre_game_screen(teams: Dict, duration: float,
+                         resolution: Tuple[int, int],
+                         bug_scale: float = 1.0,
+                         teams_registry: Optional[Dict] = None):
+    """Broadcast-style pre-game intro: league logo at top, two team cards
+    (logo, name, player photos), and a 'VS' in the middle. Same visual
+    language as `make_final_screen` but with no scores."""
+    w, h = resolution
+    img = Image.new('RGB', (w, h), FINAL_BG_COLOR)
+    draw = ImageDraw.Draw(img)
+
+    league_name_size = max(16, int(h * 0.028))
+    team_name_size = max(22, int(h * 0.045))
+    vs_size = max(48, int(h * 0.18))
+    player_name_size = max(12, int(h * 0.022))
+
+    league_font = load_font(league_name_size)
+    team_name_font = load_font(team_name_size)
+    vs_font = load_font(vs_size)
+    player_font = load_font(player_name_size)
+
+    # --- League logo / name at top ---
+    league = (teams_registry or {}).get('league') or {}
+    league_bottom_y = int(h * 0.04)
+    if league.get('logo_abs'):
+        league_logo = load_logo(league['logo_abs'], int(h * 0.10))
+        if league_logo is not None:
+            lx = (w - league_logo.size[0]) // 2
+            img.paste(league_logo, (lx, int(h * 0.04)), league_logo)
+            league_bottom_y = int(h * 0.04) + league_logo.size[1] + int(h * 0.01)
+    elif league.get('name'):
+        name = league['name'].upper()
+        bb = draw.textbbox((0, 0), name, font=league_font)
+        nw = bb[2] - bb[0]
+        y0 = int(h * 0.05)
+        _draw_text_with_shadow(draw, ((w - nw) // 2, y0 - bb[1]), name, league_font)
+        league_bottom_y = y0 + (bb[3] - bb[1]) + int(h * 0.01)
+
+    # "TIP-OFF" badge
+    tip_font = load_font(max(14, int(h * 0.028)))
+    tip_text = 'TIP-OFF'
+    tb = draw.textbbox((0, 0), tip_text, font=tip_font)
+    tw = tb[2] - tb[0]
+    th = tb[3] - tb[1]
+    tip_y = league_bottom_y + int(h * 0.005)
+    tip_pad_x = int(tw * 0.25)
+    tip_pad_y = int(th * 0.35)
+    pill_w = tw + tip_pad_x * 2
+    pill_h = th + tip_pad_y * 2
+    pill_x = (w - pill_w) // 2
+    pill = Image.new('RGBA', (pill_w, pill_h), (0, 0, 0, 0))
+    ImageDraw.Draw(pill).rounded_rectangle(
+        [(0, 0), (pill_w - 1, pill_h - 1)],
+        radius=pill_h // 2, fill=(255, 255, 255, 30),
+        outline=(255, 255, 255, 120), width=1,
+    )
+    img.paste(pill, (pill_x, tip_y), pill)
+    _draw_text_with_shadow(
+        draw, (pill_x + tip_pad_x, tip_y + tip_pad_y - tb[1]),
+        tip_text, tip_font,
+    )
+    league_bottom_y = tip_y + pill_h
+
+    # --- Team cards (same geometry as final screen) ---
+    card_w = int(w * 0.33)
+    card_h = int(h * 0.68)
+    gap = int(w * 0.06)
+    total_w = card_w * 2 + gap
+    start_x = (w - total_w) // 2
+    card_y = max(league_bottom_y + int(h * 0.020), int(h * 0.18))
+    if card_y + card_h > h - int(h * 0.02):
+        card_h = h - card_y - int(h * 0.02)
+
+    for i, team_num in enumerate((1, 2)):
+        team = teams.get(str(team_num), teams.get(team_num, {}))
+        c1 = hex_to_rgb(team.get('color1', '#888'))
+        c2 = hex_to_rgb(team.get('color2', team.get('color1', '#888')))
+        use_gradient = bool(team.get('gradient', True))
+        x = start_x + i * (card_w + gap)
+
+        # Card background
+        if use_gradient:
+            card_bg = make_gradient(card_w, card_h, c1, c2)
+        else:
+            card_bg = Image.new('RGB', (card_w, card_h), c1)
+        mask = Image.new('L', (card_w, card_h), 0)
+        ImageDraw.Draw(mask).rounded_rectangle(
+            [(0, 0), (card_w - 1, card_h - 1)], radius=28, fill=255
+        )
+        img.paste(card_bg, (x, card_y), mask)
+
+        players = team.get('players') or []
+        has_players = bool(players)
+
+        # Bigger logo + name since there's no score to fit
+        if has_players:
+            z_logo_top = 0.08
+            z_logo_h = 0.32
+            z_name_y = 0.48
+            z_players_y = 0.70
+        else:
+            z_logo_top = 0.12
+            z_logo_h = 0.38
+            z_name_y = 0.60
+            z_players_y = 1.0
+
+        # 1. Team logo
+        logo_path = team.get('logo')
+        if logo_path:
+            target_logo_h = int(card_h * z_logo_h)
+            team_logo = load_logo(logo_path, target_logo_h)
+            if team_logo is not None:
+                tlx = x + (card_w - team_logo.size[0]) // 2
+                tly = card_y + int(card_h * z_logo_top)
+                img.paste(team_logo, (tlx, tly), team_logo)
+
+        # 2. Team name
+        name = (team.get('name') or f'Team {team_num}').upper()
+        nb = draw.textbbox((0, 0), name, font=team_name_font)
+        nw = nb[2] - nb[0]
+        name_y = card_y + int(card_h * z_name_y)
+        _draw_text_with_shadow(
+            draw, (x + (card_w - nw) // 2, name_y - nb[1]),
+            name, team_name_font,
+        )
+
+        # 3. Players row
+        if has_players:
+            _paste_player_row(
+                img, draw, players, teams_registry, player_font,
+                x=x, card_w=card_w, card_y=card_y, card_h=card_h,
+                z_players_y=z_players_y, team_color2=c2,
+            )
+
+    # --- VS in the middle ---
+    vs = 'VS'
+    vb = draw.textbbox((0, 0), vs, font=vs_font)
+    vw = vb[2] - vb[0]
+    vh_ = vb[3] - vb[1]
+    vs_y = card_y + (card_h // 2) - vh_ // 2 - vb[1]
+    _draw_text_with_shadow(
+        draw, ((w - vw) // 2, vs_y), vs, vs_font,
+    )
 
     return ImageClip(np.array(img)).set_duration(duration)
 
@@ -861,6 +1078,16 @@ Examples:
     # Build clips
     entries = compute_running_scores(marks)
     clips = []
+
+    # Pre-game intro
+    pregame_dur = float(config.get('preGameDuration', 3))
+    if pregame_dur > 0:
+        print("  [pregame] pre-game intro screen")
+        clips.append(make_pre_game_screen(
+            teams, pregame_dur, source.size, args.bug_scale,
+            teams_registry=teams_registry,
+        ))
+
     for i, entry in enumerate(entries):
         mk = entry['mark']
         label = (

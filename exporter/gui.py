@@ -35,6 +35,7 @@ try:
         download_youtube,
         final_totals,
         make_final_screen,
+        make_pre_game_screen,
         make_highlight_clip,
         load_teams_config,
         auto_find_teams_config,
@@ -142,6 +143,7 @@ class ExporterApp:
 
         self.pre_roll = tk.StringVar(value="4.0")
         self.post_roll = tk.StringVar(value="1.0")
+        self.pre_game_duration = tk.StringVar(value="3.0")
         self.final_duration = tk.StringVar(value="3.0")
         self.bug_scale = tk.StringVar(value="1.0")
 
@@ -149,7 +151,7 @@ class ExporterApp:
         self.crf = tk.StringVar(value="20")
         self.preset = tk.StringVar(value="medium")
         self.keep_download = tk.BooleanVar(value=False)
-        self.teams_config_path = tk.StringVar()
+        self.presets_status = tk.StringVar(value="Team presets: (detecting…)")
 
         # ---- Runtime state ----
         self.log_queue: queue.Queue = queue.Queue()
@@ -158,6 +160,7 @@ class ExporterApp:
 
         self._build_ui()
         self._toggle_source()
+        self._refresh_presets_status()
         self.root.after(60, self._poll_log)
 
     # ----- UI construction --------------------------------------------
@@ -207,14 +210,11 @@ class ExporterApp:
         ttk.Entry(of, textvariable=self.output_path).grid(row=0, column=0, sticky="ew")
         ttk.Button(of, text="Save as…", command=self._browse_output, width=12).grid(row=0, column=1, padx=(8, 0))
 
-        # --- Teams config (optional) ---
-        tf = ttk.LabelFrame(outer, text="Team presets (optional)", padding=10, style="Section.TLabelframe")
+        # --- Team presets status (auto-detected) ---
+        tf = ttk.Frame(outer)
         tf.pack(fill="x", pady=(0, 8))
-        tf.columnconfigure(0, weight=1)
-        ttk.Entry(tf, textvariable=self.teams_config_path).grid(row=0, column=0, sticky="ew")
-        ttk.Button(tf, text="Browse…", command=self._browse_teams, width=12).grid(row=0, column=1, padx=(8, 0))
-        ttk.Label(tf, text="teams.json with logos + player rosters. Auto-detected near your assets folder if left blank.",
-                  foreground="#666").grid(row=1, column=0, columnspan=2, sticky="w", pady=(6, 0))
+        ttk.Label(tf, textvariable=self.presets_status,
+                  foreground="#666").pack(anchor="w")
 
         # --- Settings: two columns ---
         settings = ttk.Frame(outer)
@@ -227,8 +227,9 @@ class ExporterApp:
         clip.columnconfigure(1, weight=1)
         self._settings_row(clip, 0, "Pre-roll (sec)", self.pre_roll)
         self._settings_row(clip, 1, "Post-roll (sec)", self.post_roll)
-        self._settings_row(clip, 2, "Final screen (sec)", self.final_duration)
-        self._settings_row(clip, 3, "Score bug scale", self.bug_scale)
+        self._settings_row(clip, 2, "Pre-game screen (sec)", self.pre_game_duration)
+        self._settings_row(clip, 3, "Final screen (sec)", self.final_duration)
+        self._settings_row(clip, 4, "Score bug scale", self.bug_scale)
 
         render = ttk.LabelFrame(settings, text="Render settings", padding=10, style="Section.TLabelframe")
         render.grid(row=0, column=1, sticky="nsew", padx=(4, 0))
@@ -345,6 +346,7 @@ class ExporterApp:
             return
         self.marks_path.set(path)
         self._autoload_from_json(path)
+        self._refresh_presets_status()
 
     def _browse_output(self) -> None:
         default_name = Path(self.output_path.get()).name or "highlights.mp4"
@@ -357,13 +359,25 @@ class ExporterApp:
         if path:
             self.output_path.set(path)
 
-    def _browse_teams(self) -> None:
-        path = filedialog.askopenfilename(
-            title="Select teams.json",
-            filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
-        )
-        if path:
-            self.teams_config_path.set(path)
+    def _refresh_presets_status(self) -> None:
+        """Show the user whether teams.json was auto-detected, and from where."""
+        # Prefer looking relative to a marks file if the user has picked one
+        marks_hint = self.marks_path.get().strip() or None
+        try:
+            found = auto_find_teams_config(marks_hint)
+        except Exception:
+            found = None
+        if found:
+            # Shorten for display: show ".../assets/teams.json" relative-ish
+            try:
+                short = os.sep.join(Path(found).parts[-3:])
+            except Exception:
+                short = found
+            self.presets_status.set(f"Team presets: auto-detected · {short}")
+        else:
+            self.presets_status.set(
+                "Team presets: none found (put teams.json in ./assets next to this exporter)"
+            )
 
     def _autoload_from_json(self, path: str) -> None:
         try:
@@ -374,9 +388,10 @@ class ExporterApp:
             return
 
         cfg = data.get("config", {}) or {}
-        if "preRoll" in cfg:       self.pre_roll.set(str(cfg["preRoll"]))
-        if "postRoll" in cfg:      self.post_roll.set(str(cfg["postRoll"]))
-        if "finalDuration" in cfg: self.final_duration.set(str(cfg["finalDuration"]))
+        if "preRoll" in cfg:         self.pre_roll.set(str(cfg["preRoll"]))
+        if "postRoll" in cfg:        self.post_roll.set(str(cfg["postRoll"]))
+        if "preGameDuration" in cfg: self.pre_game_duration.set(str(cfg["preGameDuration"]))
+        if "finalDuration" in cfg:   self.final_duration.set(str(cfg["finalDuration"]))
 
         # If it references a YouTube video and the URL field is empty, fill it
         src = data.get("source", {}) or {}
@@ -429,6 +444,7 @@ class ExporterApp:
         try:
             opts["preRoll"] = float(self.pre_roll.get())
             opts["postRoll"] = float(self.post_roll.get())
+            opts["preGameDuration"] = float(self.pre_game_duration.get())
             opts["finalDuration"] = float(self.final_duration.get())
             opts["bugScale"] = float(self.bug_scale.get())
             opts["fps"] = int(self.fps.get())
@@ -439,7 +455,6 @@ class ExporterApp:
 
         opts["preset"] = self.preset.get().strip() or "medium"
         opts["keepDownload"] = bool(self.keep_download.get())
-        opts["teamsConfig"] = self.teams_config_path.get().strip() or None
         return opts
 
     def _on_start(self) -> None:
@@ -540,12 +555,13 @@ class ExporterApp:
             config = dict(data.get("config") or {})
             config["preRoll"] = opts["preRoll"]
             config["postRoll"] = opts["postRoll"]
+            config["preGameDuration"] = opts["preGameDuration"]
             config["finalDuration"] = opts["finalDuration"]
             # bugPosition stays as whatever the JSON said (or default)
             config.setdefault("bugPosition", "top-left")
 
-            # Load teams registry (logos + players)
-            teams_config_path = opts.get("teamsConfig") or auto_find_teams_config(opts["marks"])
+            # Load teams registry (logos + players) — auto-detected
+            teams_config_path = auto_find_teams_config(opts["marks"])
             teams_registry = load_teams_config(teams_config_path) if teams_config_path else None
             if teams_registry:
                 print(f"Using teams config: {teams_config_path}")
@@ -562,6 +578,16 @@ class ExporterApp:
 
             # 4. Build clips
             entries = compute_running_scores(marks)
+
+            # Pre-game intro
+            if opts["preGameDuration"] > 0:
+                print("  [pregame] pre-game intro screen")
+                clips.append(make_pre_game_screen(
+                    teams, opts["preGameDuration"],
+                    source.size, opts["bugScale"],
+                    teams_registry=teams_registry,
+                ))
+
             for i, entry in enumerate(entries):
                 mk = entry["mark"]
                 label = (f"+{mk['points']} T{mk['team']}"

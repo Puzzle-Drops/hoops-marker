@@ -1,6 +1,6 @@
 # Hoops Highlight Exporter
 
-The second half of the toolchain. Takes a `markings.json` exported from the [browser marking tool](../) and a source video, produces a highlight reel with an animated broadcast-style score bug and a final-score screen.
+The second half of the toolchain. Takes a `markings.json` exported from the [browser marking tool](../) and a source video, produces a highlight reel with an animated broadcast-style score bug, a **pre-game intro**, the highlight clips, and a **final-score** screen. Pre-game and final screens can show the league logo, team logos, and aspect-ratio-preserving player portraits when a `teams.json` registry is present.
 
 ## Install
 
@@ -58,18 +58,23 @@ python export.py --video game.mp4 --marks markings.json
 ## How it works
 
 1. Reads the JSON; sorts marks by timestamp; computes the running score across the game.
-2. For each mark, cuts `[t − preRoll, t + postRoll]` from the source video.
-3. Overlays a score bug onto every frame of that clip:
+2. Optionally prepends a **pre-game intro** for `preGameDuration` seconds (default 3s) with league logo, team logos + names, player portraits, and a big "VS".
+3. For each mark, cuts `[t − preRoll, t + postRoll]` from the source video.
+4. Overlays a score bug onto every frame of that clip:
    - Before the basket moment: shows the *previous* score.
    - For `0.4s` starting at the basket: counts up from previous to new score.
    - For `0.5s` after the basket: the scoring row briefly brightens (pulse).
    - After that: shows the *new* score, static, until the clip ends.
    - For "mark-only" hits (`T` key, `team: 0`): no score change, bug stays static.
-4. Concatenates all clips in chronological order.
-5. Appends a final-score card for `finalDuration` seconds (default 3s).
-6. Renders `highlights.mp4` via ffmpeg (libx264 + AAC, yuv420p for broad compatibility).
+5. Concatenates all clips in chronological order.
+6. Appends a **final-score** card for `finalDuration` seconds (default 3s) — same visual language as the intro with scores in place of VS.
+7. Renders `highlights.mp4` via ffmpeg (libx264 + AAC, yuv420p for broad compatibility).
 
-Pre-roll, post-roll, team colors, final-score duration, and bug position all come from the JSON.
+Pre-roll, post-roll, pre-game duration, final-score duration, team colors, and bug position all come from the JSON. Set any duration to `0` to skip that segment.
+
+## Team registry (`teams.json`)
+
+The exporter auto-detects `assets/teams.json` near the marks file or the exporter script. See [`assets/teams-README.md`](../assets/teams-README.md) for the full schema. When found, team logos/colors and player portraits get populated automatically — no per-game tweaking needed. When missing, the exporter falls back to whatever team info is in the JSON from the browser tool.
 
 ## Troubleshooting
 
