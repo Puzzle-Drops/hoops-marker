@@ -1019,7 +1019,7 @@ Examples:
     parser.add_argument('--marks', required=True, help='Path to markings JSON')
     parser.add_argument('--out', default='highlights.mp4', help='Output file (default: highlights.mp4)')
     parser.add_argument('--fps', type=int, default=30, help='Output FPS (default: 30)')
-    parser.add_argument('--bug-scale', type=float, default=1.0, help='Score bug size multiplier (default: 1.0)')
+    parser.add_argument('--bug-scale', type=float, default=1.5, help='Score bug size multiplier (default: 1.5)')
     parser.add_argument('--preset', default='medium',
                         help='ffmpeg preset: ultrafast/fast/medium/slow (default: medium)')
     parser.add_argument('--crf', type=int, default=18, help='ffmpeg CRF quality 0-51, lower=better (default: 18)')

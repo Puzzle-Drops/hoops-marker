@@ -145,7 +145,7 @@ class ExporterApp:
         self.post_roll = tk.StringVar(value="1.0")
         self.pre_game_duration = tk.StringVar(value="3.0")
         self.final_duration = tk.StringVar(value="3.0")
-        self.bug_scale = tk.StringVar(value="1.0")
+        self.bug_scale = tk.StringVar(value="1.5")
 
         self.fps = tk.StringVar(value="30")
         self.crf = tk.StringVar(value="18")
