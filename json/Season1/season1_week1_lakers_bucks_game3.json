@@ -1,0 +1,233 @@
+{
+  "version": 1,
+  "source": {
+    "type": "youtube",
+    "videoId": "tOtTA1AUcws"
+  },
+  "teams": {
+    "1": {
+      "name": "Lakers",
+      "color1": "#552583",
+      "color2": "#FDB927",
+      "gradient": true,
+      "teamId": "lakers",
+      "players": [
+        "Jacob",
+        "Joseph"
+      ]
+    },
+    "2": {
+      "name": "Bucks",
+      "color1": "#00471B",
+      "color2": "#EEE1C6",
+      "gradient": true,
+      "teamId": "bucks",
+      "players": [
+        "Daniel",
+        "Nathan"
+      ]
+    }
+  },
+  "config": {
+    "preRoll": 4,
+    "postRoll": 1,
+    "preGameDuration": 3,
+    "finalDuration": 3,
+    "skipAmount": 5,
+    "nudgeStep": 0.1,
+    "bugPosition": "top-left"
+  },
+  "marks": [
+    {
+      "t": 1396.393,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 1406.543,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 1413.963,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 1417.162,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 1456.422,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 1477.022,
+      "team": 1,
+      "points": 2
+    },
+    {
+      "t": 1486.02,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 1489.42,
+      "team": 1,
+      "points": 3
+    },
+    {
+      "t": 1584.311,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 1608.584,
+      "team": 2,
+      "points": 2
+    },
+    {
+      "t": 1801.534,
+      "team": 2,
+      "points": 2
+    },
+    {
+      "t": 1818.071,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 1859.65,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 1867.449,
+      "team": 1,
+      "points": 2
+    },
+    {
+      "t": 1882.724,
+      "team": 1,
+      "points": 2
+    },
+    {
+      "t": 1899.525,
+      "team": 1,
+      "points": 3
+    },
+    {
+      "t": 1913.2,
+      "team": 1,
+      "points": 2
+    },
+    {
+      "t": 1990.855,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 1996.901,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 2015.116,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 2070.79,
+      "team": 2,
+      "points": 3
+    },
+    {
+      "t": 2092.785,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 2111.98,
+      "team": 1,
+      "points": 2
+    },
+    {
+      "t": 2177.046,
+      "team": 1,
+      "points": 2
+    },
+    {
+      "t": 2193.245,
+      "team": 1,
+      "points": 2
+    },
+    {
+      "t": 2216.257,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 2251.921,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 2308.51,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 2383.505,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 2390.097,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 2413.426,
+      "team": 1,
+      "points": 2
+    },
+    {
+      "t": 2422.625,
+      "team": 1,
+      "points": 3
+    },
+    {
+      "t": 2449.499,
+      "team": 2,
+      "points": 2
+    },
+    {
+      "t": 2471.598,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 2484.64,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 2567.725,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 2665.493,
+      "team": 2,
+      "points": 3
+    },
+    {
+      "t": 2677.212,
+      "team": 2,
+      "points": 2
+    }
+  ],
+  "createdAt": "2026-04-20T16:51:23.615Z"
+}

@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "source": {
+    "type": "youtube",
+    "videoId": "tOtTA1AUcws"
+  },
+  "teams": {
+    "1": {
+      "name": "Lakers",
+      "color1": "#552583",
+      "color2": "#FDB927",
+      "gradient": true,
+      "teamId": "lakers",
+      "players": [
+        "Jacob",
+        "Joseph"
+      ]
+    },
+    "2": {
+      "name": "Bucks",
+      "color1": "#00471B",
+      "color2": "#EEE1C6",
+      "gradient": true,
+      "teamId": "bucks",
+      "players": [
+        "Daniel",
+        "Nathan"
+      ]
+    }
+  },
+  "config": {
+    "preRoll": 4,
+    "postRoll": 1,
+    "preGameDuration": 3,
+    "finalDuration": 3,
+    "skipAmount": 5,
+    "nudgeStep": 0.1,
+    "bugPosition": "top-left"
+  },
+  "marks": [
+    {
+      "t": 364.271,
+      "team": 1,
+      "points": 2
+    },
+    {
+      "t": 387.27,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 393.072,
+      "team": 1,
+      "points": 2
+    },
+    {
+      "t": 424.268,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 446.371,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 451.969,
+      "team": 1,
+      "points": 2
+    },
+    {
+      "t": 467.271,
+      "team": 1,
+      "points": 2
+    },
+    {
+      "t": 477.471,
+      "team": 1,
+      "points": 3
+    },
+    {
+      "t": 508.77,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 515.671,
+      "team": 1,
+      "points": 2
+    },
+    {
+      "t": 533.77,
+      "team": 1,
+      "points": 2
+    },
+    {
+      "t": 543.17,
+      "team": 1,
+      "points": 2
+    },
+    {
+      "t": 579.072,
+      "team": 1,
+      "points": 2
+    },
+    {
+      "t": 588.472,
+      "team": 1,
+      "points": 2
+    }
+  ],
+  "createdAt": "2026-04-20T15:55:49.366Z"
+}

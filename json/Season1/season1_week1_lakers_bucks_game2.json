@@ -1,0 +1,138 @@
+{
+  "version": 1,
+  "source": {
+    "type": "youtube",
+    "videoId": "tOtTA1AUcws"
+  },
+  "teams": {
+    "1": {
+      "name": "Lakers",
+      "color1": "#552583",
+      "color2": "#FDB927",
+      "gradient": true,
+      "teamId": "lakers",
+      "players": [
+        "Jacob",
+        "Joseph"
+      ]
+    },
+    "2": {
+      "name": "Bucks",
+      "color1": "#00471B",
+      "color2": "#EEE1C6",
+      "gradient": true,
+      "teamId": "bucks",
+      "players": [
+        "Daniel",
+        "Nathan"
+      ]
+    }
+  },
+  "config": {
+    "preRoll": 4,
+    "postRoll": 1,
+    "preGameDuration": 3,
+    "finalDuration": 3,
+    "skipAmount": 5,
+    "nudgeStep": 0.1,
+    "bugPosition": "top-left"
+  },
+  "marks": [
+    {
+      "t": 718.685,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 746.846,
+      "team": 1,
+      "points": 2
+    },
+    {
+      "t": 765.045,
+      "team": 2,
+      "points": 2
+    },
+    {
+      "t": 782.645,
+      "team": 2,
+      "points": 2
+    },
+    {
+      "t": 791.345,
+      "team": 2,
+      "points": 2
+    },
+    {
+      "t": 804.645,
+      "team": 2,
+      "points": 2
+    },
+    {
+      "t": 833.926,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 860.185,
+      "team": 1,
+      "points": 2
+    },
+    {
+      "t": 903.63,
+      "team": 2,
+      "points": 3
+    },
+    {
+      "t": 1089.71,
+      "team": 2,
+      "points": 2
+    },
+    {
+      "t": 1100.517,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 1109.918,
+      "team": 1,
+      "points": 2
+    },
+    {
+      "t": 1164.753,
+      "team": 2,
+      "points": 2
+    },
+    {
+      "t": 1182.463,
+      "team": 1,
+      "points": 2
+    },
+    {
+      "t": 1201.063,
+      "team": 1,
+      "points": 2
+    },
+    {
+      "t": 1253.727,
+      "team": 1,
+      "points": 2
+    },
+    {
+      "t": 1268.015,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 1274.716,
+      "team": 2,
+      "points": 3
+    },
+    {
+      "t": 1295.894,
+      "team": 2,
+      "points": 3
+    }
+  ],
+  "createdAt": "2026-04-20T16:53:56.016Z"
+}
