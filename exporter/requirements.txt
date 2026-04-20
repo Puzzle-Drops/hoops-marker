@@ -1,0 +1,17 @@
+# Hoops Highlight Exporter — Python dependencies
+#
+# Install with:  pip install -r requirements.txt
+#
+# ffmpeg is also required and must be on your PATH. moviepy does not
+# install it automatically.
+#   macOS:    brew install ffmpeg
+#   Windows:  https://www.gyan.dev/ffmpeg/builds/  (add bin/ to PATH)
+#   Linux:    sudo apt install ffmpeg   (or your distro's equivalent)
+
+moviepy>=1.0.3,<2.0
+Pillow>=10.0
+numpy>=1.24
+
+# Optional: only needed if you want to pass --youtube URL directly.
+# If omitted, download the video yourself (e.g. with yt-dlp) and use --video PATH.
+yt-dlp>=2024.0.0

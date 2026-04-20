@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "source": {
+    "type": "youtube",
+    "videoId": "tOtTA1AUcws"
+  },
+  "teams": {
+    "1": {
+      "name": "LAKERS",
+      "color1": "#E03A3E",
+      "color2": "#8B0000",
+      "gradient": true
+    },
+    "2": {
+      "name": "BUCKS",
+      "color1": "#007A33",
+      "color2": "#004D20",
+      "gradient": true
+    }
+  },
+  "config": {
+    "preRoll": 4,
+    "postRoll": 1,
+    "finalDuration": 3,
+    "skipAmount": 5,
+    "nudgeStep": 0.1,
+    "bugPosition": "top-left"
+  },
+  "marks": [
+    {
+      "t": 365.469,
+      "team": 1,
+      "points": 2
+    },
+    {
+      "t": 387.965,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 393.066,
+      "team": 1,
+      "points": 2
+    },
+    {
+      "t": 467.268,
+      "team": 1,
+      "points": 2
+    }
+  ],
+  "createdAt": "2026-04-20T14:16:54.062Z"
+}
