@@ -52,7 +52,7 @@ python export.py --video game.mp4 --marks markings.json
 | `--fps N` | `30` | Output frame rate |
 | `--bug-scale F` | `1.0` | Score bug size multiplier. Try `1.4` for 4K source, `0.8` for 720p |
 | `--preset P` | `medium` | ffmpeg x264 preset. `ultrafast`/`fast` = quicker but bigger, `slow` = smaller but slower |
-| `--crf N` | `20` | ffmpeg CRF. 0 = lossless, 18 = visually lossless, 23 = default, 28 = smaller |
+| `--crf N` | `18` | ffmpeg CRF. 0 = lossless, 18 = visually lossless (default), 23 = ffmpeg default, 28 = smaller |
 | `--keep-download` | off | Keep the downloaded YouTube file instead of deleting after export |
 
 ## How it works

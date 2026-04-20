@@ -1022,7 +1022,7 @@ Examples:
     parser.add_argument('--bug-scale', type=float, default=1.0, help='Score bug size multiplier (default: 1.0)')
     parser.add_argument('--preset', default='medium',
                         help='ffmpeg preset: ultrafast/fast/medium/slow (default: medium)')
-    parser.add_argument('--crf', type=int, default=20, help='ffmpeg CRF quality 0-51, lower=better (default: 20)')
+    parser.add_argument('--crf', type=int, default=18, help='ffmpeg CRF quality 0-51, lower=better (default: 18)')
     parser.add_argument('--keep-download', action='store_true',
                         help='Keep the downloaded YouTube file after export')
     parser.add_argument('--teams', default=None,

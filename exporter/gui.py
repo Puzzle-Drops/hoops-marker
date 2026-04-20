@@ -148,7 +148,7 @@ class ExporterApp:
         self.bug_scale = tk.StringVar(value="1.0")
 
         self.fps = tk.StringVar(value="30")
-        self.crf = tk.StringVar(value="20")
+        self.crf = tk.StringVar(value="18")
         self.preset = tk.StringVar(value="medium")
         self.keep_download = tk.BooleanVar(value=False)
         self.presets_status = tk.StringVar(value="Team presets: (detecting…)")
