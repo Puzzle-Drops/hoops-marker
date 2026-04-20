@@ -139,7 +139,7 @@ class ExporterApp:
         self.local_path = tk.StringVar()
         self.youtube_url = tk.StringVar()
         self.marks_path = tk.StringVar()
-        self.output_path = tk.StringVar(value=str(Path.home() / "Desktop" / "highlights.mp4"))
+        self.output_path = tk.StringVar(value=str(self._default_output_dir() / "highlights.mp4"))
 
         self.pre_roll = tk.StringVar(value="4.0")
         self.post_roll = tk.StringVar(value="1.0")
@@ -346,6 +346,12 @@ class ExporterApp:
             return
         self.marks_path.set(path)
         self._autoload_from_json(path)
+        # Match the output filename to the JSON stem, inside <project>/vods/highlights/
+        try:
+            stem = Path(path).stem
+            self.output_path.set(str(self._default_output_dir() / f"{stem}.mp4"))
+        except Exception:
+            pass
         self._refresh_presets_status()
 
     def _browse_output(self) -> None:
@@ -358,6 +364,16 @@ class ExporterApp:
         )
         if path:
             self.output_path.set(path)
+
+    @staticmethod
+    def _default_output_dir() -> Path:
+        """`<project>/vods/highlights/` — project root is the parent of this
+        exporter folder. Falls back to the user's Desktop if the path can't be
+        resolved (e.g. the exporter is running from a weird working dir)."""
+        try:
+            return Path(__file__).resolve().parent.parent / "vods" / "highlights"
+        except NameError:
+            return Path.home() / "Desktop"
 
     def _refresh_presets_status(self) -> None:
         """Show the user whether teams.json was auto-detected, and from where."""

@@ -50,7 +50,7 @@ You may need to `chmod +x hoops-exporter.command` in a terminal first.
 
 1. **Pick your video source** — radio button for Local file or YouTube URL.
 2. **Pick your markings JSON** — the file you exported from the browser marking tool. When you select it, the app auto-fills the pre-roll / post-roll / final-screen values from the JSON. It will also auto-fill the YouTube URL if your JSON was marked against YouTube.
-3. **Pick an output file** — defaults to `highlights.mp4` on your Desktop.
+3. **Pick an output file** — defaults to `<project>/vods/highlights/<json-name>.mp4`. Picking a markings JSON auto-updates the output filename to match the JSON stem (e.g. `season1-game1-lakers-bucks.json` → `season1-game1-lakers-bucks.mp4`). `vods/` is gitignored so renders never end up in the repo.
 4. **Tweak settings if you want:**
    - **Pre-roll / Post-roll** — seconds before/after each scoring moment to include
    - **Pre-game screen** — how long the intro "VS" card stays on screen (set 0 to skip it)
