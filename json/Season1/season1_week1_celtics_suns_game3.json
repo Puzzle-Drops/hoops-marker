@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "source": {
+    "type": "youtube",
+    "videoId": "xfgL18Yw2NI"
+  },
+  "teams": {
+    "1": {
+      "name": "Celtics",
+      "color1": "#007A33",
+      "color2": "#BA9653",
+      "gradient": true,
+      "teamId": "celtics",
+      "players": [
+        "Jacob",
+        "Daniel"
+      ]
+    },
+    "2": {
+      "name": "Suns",
+      "color1": "#E56020",
+      "color2": "#1D1160",
+      "gradient": true,
+      "teamId": "suns",
+      "players": [
+        "Joseph",
+        "Nathan"
+      ]
+    }
+  },
+  "config": {
+    "preRoll": 4,
+    "postRoll": 1,
+    "preGameDuration": 3,
+    "finalDuration": 3,
+    "skipAmount": 5,
+    "nudgeStep": 0.1,
+    "bugPosition": "top-left"
+  },
+  "marks": [
+    {
+      "t": 2845.766,
+      "team": 2,
+      "points": 3
+    },
+    {
+      "t": 2863.098,
+      "team": 1,
+      "points": 2
+    },
+    {
+      "t": 2909.267,
+      "team": 1,
+      "points": 2
+    },
+    {
+      "t": 2929.871,
+      "team": 1,
+      "points": 2
+    },
+    {
+      "t": 2957.767,
+      "team": 1,
+      "points": 2
+    },
+    {
+      "t": 3006.484,
+      "team": 2,
+      "points": 2
+    },
+    {
+      "t": 3030.152,
+      "team": 2,
+      "points": 2
+    },
+    {
+      "t": 3046.72,
+      "team": 2,
+      "points": 2
+    },
+    {
+      "t": 3074.781,
+      "team": 2,
+      "points": 3
+    },
+    {
+      "t": 3085.724,
+      "team": 2,
+      "points": 3
+    },
+    {
+      "t": 3117.769,
+      "team": 2,
+      "points": 2
+    },
+    {
+      "t": 3162.414,
+      "team": 2,
+      "points": 2
+    },
+    {
+      "t": 3174.606,
+      "team": 2,
+      "points": 2
+    }
+  ],
+  "createdAt": "2026-04-20T20:34:06.553Z"
+}
