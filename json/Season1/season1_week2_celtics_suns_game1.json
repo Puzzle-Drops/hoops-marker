@@ -1,0 +1,168 @@
+{
+  "version": 1,
+  "source": {
+    "type": "youtube",
+    "videoId": "qQsgYh4bax0"
+  },
+  "teams": {
+    "1": {
+      "name": "Celtics",
+      "color1": "#007A33",
+      "color2": "#BA9653",
+      "gradient": true,
+      "teamId": "celtics",
+      "players": [
+        "Jacob",
+        "Daniel"
+      ]
+    },
+    "2": {
+      "name": "Suns",
+      "color1": "#E56020",
+      "color2": "#1D1160",
+      "gradient": true,
+      "teamId": "suns",
+      "players": [
+        "Joseph",
+        "Nathan"
+      ]
+    }
+  },
+  "config": {
+    "preRoll": 4,
+    "postRoll": 1,
+    "preGameDuration": 3,
+    "finalDuration": 3,
+    "skipAmount": 5,
+    "nudgeStep": 0.1,
+    "bugPosition": "top-left"
+  },
+  "marks": [
+    {
+      "t": 3236.053,
+      "team": 2,
+      "points": 2
+    },
+    {
+      "t": 3263.498,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 3275.397,
+      "team": 2,
+      "points": 3
+    },
+    {
+      "t": 3295.929,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 3298.929,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 3501.87,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 3534.353,
+      "team": 2,
+      "points": 2
+    },
+    {
+      "t": 3606.556,
+      "team": 1,
+      "points": 2
+    },
+    {
+      "t": 3640.685,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 3643.485,
+      "team": 1,
+      "points": 2
+    },
+    {
+      "t": 3716.954,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 3720.254,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 3722.054,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 3723.253,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 3725.654,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 3728.254,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 3730.654,
+      "team": 2,
+      "points": 2
+    },
+    {
+      "t": 3757.198,
+      "team": 2,
+      "points": 2
+    },
+    {
+      "t": 3777.67,
+      "team": 2,
+      "points": 2
+    },
+    {
+      "t": 3841.739,
+      "team": 2,
+      "points": 2
+    },
+    {
+      "t": 3874.901,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 3876.5,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 3880.598,
+      "team": 0,
+      "points": 0
+    },
+    {
+      "t": 3911.978,
+      "team": 2,
+      "points": 3
+    },
+    {
+      "t": 3961.944,
+      "team": 2,
+      "points": 2
+    }
+  ],
+  "createdAt": "2026-04-27T15:02:17.485Z"
+}
