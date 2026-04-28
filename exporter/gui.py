@@ -8,9 +8,11 @@ if you want it to open without a console window.
 Requires `export.py` and `requirements.txt` installed in the same folder.
 """
 
+import hashlib
 import json
 import os
 import queue
+import re
 import sys
 import threading
 import traceback
@@ -154,6 +156,11 @@ class ExporterApp:
         self.preset = tk.StringVar(value="medium")
         self.keep_download = tk.BooleanVar(value=False)
         self.presets_status = tk.StringVar(value="Team presets: (detecting…)")
+        self.batch_status = tk.StringVar(value="")
+
+        # Source of truth for selected JSON files. The marks_path Entry shows
+        # a representation; this list is what _collect_options actually reads.
+        self.marks_paths_list: list[str] = []
 
         # ---- Runtime state ----
         self.log_queue: queue.Queue = queue.Queue()
@@ -202,8 +209,11 @@ class ExporterApp:
         jf.columnconfigure(0, weight=1)
         ttk.Entry(jf, textvariable=self.marks_path).grid(row=0, column=0, sticky="ew")
         ttk.Button(jf, text="Browse…", command=self._browse_marks, width=12).grid(row=0, column=1, padx=(8, 0))
-        ttk.Label(jf, text="Settings from the JSON will auto-fill the fields below.",
+        ttk.Label(jf, text="Pick one — or hold Ctrl/Shift to select multiple for batch export. "
+                          "Settings auto-fill from the first JSON.",
                   foreground="#666").grid(row=1, column=0, columnspan=2, sticky="w", pady=(6, 0))
+        ttk.Label(jf, textvariable=self.batch_status,
+                  foreground="#7ee787").grid(row=2, column=0, columnspan=2, sticky="w", pady=(2, 0))
 
         # --- Output ---
         of = ttk.LabelFrame(outer, text="Output file", padding=10, style="Section.TLabelframe")
@@ -340,20 +350,42 @@ class ExporterApp:
             self.local_path.set(path)
 
     def _browse_marks(self) -> None:
-        path = filedialog.askopenfilename(
-            title="Select markings JSON",
+        paths = filedialog.askopenfilenames(
+            title="Select markings JSON (Ctrl/Shift-click for multiple)",
             filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
         )
-        if not path:
+        if not paths:
             return
-        self.marks_path.set(path)
-        self._autoload_from_json(path)
-        # Match the output filename to the JSON stem, inside <project>/vods/highlights/
-        try:
-            stem = Path(path).stem
-            self.output_path.set(str(self._default_output_dir() / f"{stem}.mp4"))
-        except Exception:
-            pass
+        paths = list(paths)
+        self.marks_paths_list = paths
+
+        if len(paths) == 1:
+            p = paths[0]
+            self.marks_path.set(p)
+            self.batch_status.set("")
+            self._autoload_from_json(p)
+            # Match output filename to the JSON stem, inside <project>/vods/highlights/
+            try:
+                self.output_path.set(str(self._default_output_dir() / f"{Path(p).stem}.mp4"))
+            except Exception:
+                pass
+        else:
+            names = [Path(p).name for p in paths]
+            shown = ", ".join(names[:3])
+            if len(names) > 3:
+                shown += f", … (+{len(names) - 3} more)"
+            self.marks_path.set(f"{len(paths)} files: {shown}")
+            self.batch_status.set(
+                f"Batch mode: {len(paths)} JSONs selected — each exports as "
+                f"<output folder>/<jsonStem>.mp4. Source comes from each JSON."
+            )
+            # Autoload settings from the first JSON so the entry fields make sense.
+            self._autoload_from_json(paths[0])
+            # Output becomes a folder in batch mode.
+            try:
+                self.output_path.set(str(self._default_output_dir()))
+            except Exception:
+                pass
         self._refresh_presets_status()
 
     def _browse_output(self) -> None:
@@ -366,6 +398,19 @@ class ExporterApp:
         )
         if path:
             self.output_path.set(path)
+
+    @staticmethod
+    def _extract_youtube_id(url: str) -> str | None:
+        """Pull an 11-char YouTube ID out of common URL shapes, or return None.
+        Mirrors the browser tool: handles youtu.be/, watch?v=, shorts/, embed/, or a bare ID."""
+        s = (url or "").strip()
+        if not s:
+            return None
+        # Bare 11-char ID
+        if re.fullmatch(r"[A-Za-z0-9_-]{11}", s):
+            return s
+        m = re.search(r"(?:youtu\.be/|v=|/shorts/|/embed/)([A-Za-z0-9_-]{11})", s)
+        return m.group(1) if m else None
 
     @staticmethod
     def _default_output_dir() -> Path:
@@ -427,53 +472,130 @@ class ExporterApp:
     # ----- Validation + start ----------------------------------------
 
     def _collect_options(self) -> dict | None:
-        opts = {}
-        # Source
-        if self.source_type.get() == "local":
-            p = self.local_path.get().strip()
-            if not p or not os.path.exists(p):
-                messagebox.showerror("Missing video", "Pick a local video file.")
-                return None
-            opts["video"] = p
-            opts["youtube"] = None
-        else:
-            url = self.youtube_url.get().strip()
-            if not url:
-                messagebox.showerror("Missing URL", "Paste a YouTube URL.")
-                return None
-            opts["video"] = None
-            opts["youtube"] = url
-
-        # Marks
-        mp = self.marks_path.get().strip()
-        if not mp or not os.path.exists(mp):
+        # ---- Resolve which JSON files to process ----
+        paths = list(self.marks_paths_list)
+        if not paths:
+            # No multi-select; fall back to whatever's in the entry (legacy / hand-typed).
+            single = self.marks_path.get().strip()
+            if single and os.path.exists(single):
+                paths = [single]
+        if not paths:
             messagebox.showerror("Missing JSON", "Pick a markings JSON file.")
             return None
-        opts["marks"] = mp
+        for p in paths:
+            if not os.path.exists(p):
+                messagebox.showerror("Missing JSON", f"JSON not found:\n{p}")
+                return None
 
-        # Output
-        out = self.output_path.get().strip()
-        if not out:
-            messagebox.showerror("Missing output", "Pick an output filename.")
+        is_batch = len(paths) > 1
+
+        # ---- Output ----
+        out_value = self.output_path.get().strip()
+        if not out_value:
+            messagebox.showerror("Missing output", "Pick an output path.")
             return None
-        opts["out"] = out
 
-        # Numeric
+        if is_batch:
+            # Treat as a directory; if it points at a .mp4, take the parent.
+            output_dir = (os.path.dirname(out_value)
+                          if out_value.lower().endswith(".mp4") else out_value)
+            output_dir = output_dir or "."
+        else:
+            output_dir = None  # single-job uses out_value as a file path verbatim
+
+        # ---- Numeric ----
         try:
-            opts["preRoll"] = float(self.pre_roll.get())
-            opts["postRoll"] = float(self.post_roll.get())
-            opts["preGameDuration"] = float(self.pre_game_duration.get())
-            opts["finalDuration"] = float(self.final_duration.get())
-            opts["bugScale"] = float(self.bug_scale.get())
-            opts["fps"] = int(self.fps.get())
-            opts["crf"] = int(self.crf.get())
+            preRoll = float(self.pre_roll.get())
+            postRoll = float(self.post_roll.get())
+            preGame = float(self.pre_game_duration.get())
+            finalDur = float(self.final_duration.get())
+            bugScale = float(self.bug_scale.get())
+            fps = int(self.fps.get())
+            crf = int(self.crf.get())
         except ValueError as e:
             messagebox.showerror("Invalid number", f"Check the numeric fields.\n\n{e}")
             return None
 
-        opts["preset"] = self.preset.get().strip() or "medium"
-        opts["keepDownload"] = bool(self.keep_download.get())
-        return opts
+        # ---- Per-job source resolution ----
+        # In single-job mode, the GUI's source picker wins (legacy behavior).
+        # In batch mode, each JSON's own `source` field wins; the GUI source
+        # is only used as a fallback when a JSON has no source info.
+        gui_kind = self.source_type.get()
+        gui_local = self.local_path.get().strip()
+        gui_url = self.youtube_url.get().strip()
+
+        def _from_gui():
+            if gui_kind == "local":
+                if not gui_local or not os.path.exists(gui_local):
+                    return None, "Pick a local video file."
+                return ("local", os.path.abspath(gui_local)), None
+            url = gui_url
+            if not url:
+                return None, "Paste a YouTube URL."
+            vid = self._extract_youtube_id(url)
+            if vid:
+                return ("youtube", vid), None
+            # Couldn't parse an ID — pass the URL through as the cache key.
+            return ("youtube_url", url), None
+
+        jobs = []
+        for p in paths:
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            except Exception as e:
+                messagebox.showerror("Invalid JSON", f"{os.path.basename(p)}:\n{e}")
+                return None
+
+            if is_batch:
+                src = data.get("source") or {}
+                if src.get("type") == "youtube" and src.get("videoId"):
+                    source = ("youtube", src["videoId"])
+                elif src.get("type") == "local":
+                    if not gui_local or not os.path.exists(gui_local):
+                        messagebox.showerror(
+                            "Missing video",
+                            f"'{os.path.basename(p)}' has a local source. "
+                            "Pick a local video file in the GUI — it'll be reused "
+                            "for any local-source JSONs in the batch.",
+                        )
+                        return None
+                    source = ("local", os.path.abspath(gui_local))
+                else:
+                    src_tuple, err = _from_gui()
+                    if err:
+                        messagebox.showerror(
+                            "Missing source",
+                            f"'{os.path.basename(p)}' has no source info — "
+                            f"please fill in a source in the GUI.\n\n{err}",
+                        )
+                        return None
+                    source = src_tuple
+            else:
+                src_tuple, err = _from_gui()
+                if err:
+                    messagebox.showerror("Missing source", err)
+                    return None
+                source = src_tuple
+
+            if is_batch:
+                out = os.path.join(output_dir, f"{Path(p).stem}.mp4")
+            else:
+                out = out_value
+            jobs.append({"marks": p, "source": source, "out": out})
+
+        return {
+            "jobs": jobs,
+            "preRoll": preRoll,
+            "postRoll": postRoll,
+            "preGameDuration": preGame,
+            "finalDuration": finalDur,
+            "bugScale": bugScale,
+            "fps": fps,
+            "crf": crf,
+            "preset": self.preset.get().strip() or "medium",
+            "keepDownload": bool(self.keep_download.get()),
+        }
 
     def _on_start(self) -> None:
         if self.running:
@@ -533,72 +655,201 @@ class ExporterApp:
     # ----- The actual worker -----------------------------------------
 
     def _run_export(self, opts: dict) -> None:
-        """Runs in a background thread. Mirrors what export.py's main() does
-        but takes options from the GUI instead of argparse."""
+        """Runs in a background thread. Iterates over all selected JSON jobs,
+        downloading each unique YouTube source only once and reusing the
+        loaded VideoFileClip across jobs that share a source."""
 
         stdout_orig = sys.stdout
         stderr_orig = sys.stderr
         sys.stdout = StdoutCapture(self.log_queue, "out")
         sys.stderr = StdoutCapture(self.log_queue, "err")
 
-        downloaded = False
-        video_path = None
-        source = None
-        clips = []
+        import tempfile
+
+        # videoId -> downloaded local path. Survives across jobs in this run.
+        yt_cache: dict[str, str] = {}
+        downloaded_paths: list[str] = []
+
+        # Currently-loaded source clip. Reused across consecutive jobs that
+        # share a video file; reloaded only when the path actually changes.
+        current_video_path: str | None = None
+        current_source = None
+
+        successes: list[str] = []
+        failures: list[tuple[str, str]] = []
 
         try:
-            # 1. Resolve source
-            if opts["youtube"]:
-                video_path = download_youtube(opts["youtube"])
-                downloaded = True
+            jobs = opts["jobs"]
+            n = len(jobs)
+            print(f"Starting export of {n} job{'s' if n != 1 else ''}.")
+
+            for i, job in enumerate(jobs):
+                job_label = os.path.basename(job["marks"])
+                print(f"\n{'=' * 60}")
+                print(f"Job {i + 1}/{n}: {job_label}")
+                print('=' * 60)
+
+                try:
+                    # ---- Resolve / download source ----
+                    src_kind, src_key = job["source"]
+
+                    if src_kind == "youtube":
+                        if src_key in yt_cache:
+                            video_path = yt_cache[src_key]
+                            print(f"Reusing already-downloaded YouTube video "
+                                  f"({src_key}) → {video_path}")
+                        else:
+                            url = f"https://youtu.be/{src_key}"
+                            out_path = os.path.join(
+                                tempfile.gettempdir(),
+                                f"hoops_yt_{src_key}.mp4",
+                            )
+                            video_path = download_youtube(url, out_path=out_path)
+                            yt_cache[src_key] = video_path
+                            downloaded_paths.append(video_path)
+                    elif src_kind == "youtube_url":
+                        # We couldn't parse a videoId; key the cache by the URL string.
+                        if src_key in yt_cache:
+                            video_path = yt_cache[src_key]
+                            print(f"Reusing already-downloaded YouTube video → {video_path}")
+                        else:
+                            slug = hashlib.md5(src_key.encode("utf-8")).hexdigest()[:10]
+                            out_path = os.path.join(
+                                tempfile.gettempdir(),
+                                f"hoops_yt_{slug}.mp4",
+                            )
+                            video_path = download_youtube(src_key, out_path=out_path)
+                            yt_cache[src_key] = video_path
+                            downloaded_paths.append(video_path)
+                    else:  # "local"
+                        video_path = src_key
+
+                    if not os.path.exists(video_path):
+                        raise FileNotFoundError(f"Video not found: {video_path}")
+
+                    # ---- Load (or reuse) the source clip ----
+                    if current_video_path != video_path:
+                        if current_source is not None:
+                            try:
+                                current_source.close()
+                            except Exception:
+                                pass
+                            current_source = None
+                            current_video_path = None
+                        print(f"Loading video: {video_path}")
+                        current_source = VideoFileClip(video_path)
+                        current_video_path = video_path
+                        print(f"  Duration: {current_source.duration:.1f}s · "
+                              f"Size: {current_source.size[0]}x{current_source.size[1]} · "
+                              f"FPS: {current_source.fps:.1f}")
+                    else:
+                        print(f"Reusing already-loaded source clip "
+                              f"(same video as previous job).")
+
+                    # ---- Render this job ----
+                    actual_out = self._render_job(job, current_source, opts)
+                    successes.append(actual_out)
+                    print(f"\n[{i + 1}/{n}] Done → {actual_out}")
+
+                except Exception as e:
+                    tb = traceback.format_exc()
+                    print(tb, file=sys.stderr)
+                    failures.append((job_label, f"{type(e).__name__}: {e}"))
+
+            # ---- Cleanup loaded source ----
+            if current_source is not None:
+                try:
+                    current_source.close()
+                except Exception:
+                    pass
+                current_source = None
+
+            # ---- Cleanup downloaded YouTube files ----
+            if not opts["keepDownload"]:
+                for p in downloaded_paths:
+                    try:
+                        if os.path.exists(p):
+                            os.remove(p)
+                            print(f"Cleaned up downloaded file: {p}")
+                    except OSError:
+                        pass
+
+            # ---- Final report ----
+            ok = len(successes)
+            err = len(failures)
+            if err == 0:
+                msg = (f"Exported {ok}/{n} reel{'s' if n != 1 else ''}." if n > 1
+                       else f"Exported {successes[0]}")
+                reveal = successes[0] if ok == 1 else (
+                    os.path.dirname(successes[0]) if successes else None
+                )
+                self.root.after(0, self._finish, True, msg, reveal)
             else:
-                video_path = opts["video"]
+                lines = [f"{ok}/{n} succeeded, {err} failed:"]
+                for name, emsg in failures:
+                    lines.append(f"  • {name}: {emsg}")
+                full = "\n".join(lines)
+                print(f"\n{full}")
+                reveal = successes[-1] if successes else None
+                # Treat partial success as failure dialog so the user sees the list.
+                self.root.after(0, self._finish, ok > 0 and err == 0, full, reveal)
 
-            if not os.path.exists(video_path):
-                raise FileNotFoundError(f"Video not found: {video_path}")
+        except Exception as e:
+            tb = traceback.format_exc()
+            print(tb, file=sys.stderr)
+            self.root.after(0, self._finish, False, f"{type(e).__name__}: {e}")
 
-            # 2. Load JSON
-            with open(opts["marks"], "r", encoding="utf-8") as f:
-                data = json.load(f)
-            marks = sorted(data.get("marks", []), key=lambda m: float(m["t"]))
-            if not marks:
-                raise ValueError("No marks in JSON — nothing to export.")
-            teams = data.get("teams") or {
-                "1": {"name": "Team 1", "color1": "#E03A3E",
-                      "color2": "#8B0000", "gradient": True},
-                "2": {"name": "Team 2", "color1": "#007A33",
-                      "color2": "#004D20", "gradient": True},
-            }
-            # Build config, letting GUI overrides win over JSON
-            config = dict(data.get("config") or {})
-            config["preRoll"] = opts["preRoll"]
-            config["postRoll"] = opts["postRoll"]
-            config["preGameDuration"] = opts["preGameDuration"]
-            config["finalDuration"] = opts["finalDuration"]
-            # bugPosition stays as whatever the JSON said (or default)
-            config.setdefault("bugPosition", "top-left")
+        finally:
+            sys.stdout = stdout_orig
+            sys.stderr = stderr_orig
+            try:
+                if current_source is not None:
+                    current_source.close()
+            except Exception:
+                pass
 
-            # Load teams registry (logos + players) — auto-detected
-            teams_config_path = auto_find_teams_config(opts["marks"])
-            teams_registry = load_teams_config(teams_config_path) if teams_config_path else None
-            if teams_registry:
-                print(f"Using teams config: {teams_config_path}")
-                enrich_teams_from_registry(teams, teams_registry)
-            else:
-                print("No teams.json found — exporting with basic team info only.")
+    def _render_job(self, job: dict, source, opts: dict) -> str:
+        """Render one JSON's highlight reel against an already-loaded source clip.
+        Returns the final output path actually written (which may differ from
+        opts['out'] if the destination was unwritable and we kept it in temp)."""
+        import shutil
+        import tempfile
+        import uuid
 
-            # 3. Load video
-            print(f"Loading video: {video_path}")
-            source = VideoFileClip(video_path)
-            print(f"  Duration: {source.duration:.1f}s · "
-                  f"Size: {source.size[0]}x{source.size[1]} · "
-                  f"FPS: {source.fps:.1f}")
+        marks_path = job["marks"]
 
-            # 4. Build clips
+        with open(marks_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        marks = sorted(data.get("marks", []), key=lambda m: float(m["t"]))
+        if not marks:
+            raise ValueError("No marks in JSON — nothing to export.")
+
+        teams = data.get("teams") or {
+            "1": {"name": "Team 1", "color1": "#E03A3E",
+                  "color2": "#8B0000", "gradient": True},
+            "2": {"name": "Team 2", "color1": "#007A33",
+                  "color2": "#004D20", "gradient": True},
+        }
+        config = dict(data.get("config") or {})
+        config["preRoll"] = opts["preRoll"]
+        config["postRoll"] = opts["postRoll"]
+        config["preGameDuration"] = opts["preGameDuration"]
+        config["finalDuration"] = opts["finalDuration"]
+        config.setdefault("bugPosition", "top-left")
+
+        teams_config_path = auto_find_teams_config(marks_path)
+        teams_registry = load_teams_config(teams_config_path) if teams_config_path else None
+        if teams_registry:
+            print(f"Using teams config: {teams_config_path}")
+            enrich_teams_from_registry(teams, teams_registry)
+        else:
+            print("No teams.json found — exporting with basic team info only.")
+
+        clips: list = []
+        try:
             entries = compute_running_scores(marks)
             chunks = build_chunks(entries, config, source.duration)
 
-            # Pre-game intro
             if opts["preGameDuration"] > 0:
                 print("  [pregame] pre-game intro screen")
                 clips.append(make_pre_game_screen(
@@ -617,8 +868,8 @@ class ExporterApp:
                     labels.append(f"+{mk['points']} T{mk['team']}"
                                   if mk.get("team") in (1, 2) else "MARK")
                 final_new = chunk["events"][-1]["new"]
-                print(f"  [{i+1}/{len(chunks)}]  {chunk['start']:.2f}–{chunk['end']:.2f}s  "
-                      f"({len(chunk['events'])} event{'s' if len(chunk['events'])>1 else ''}: "
+                print(f"  [{i + 1}/{len(chunks)}]  {chunk['start']:.2f}–{chunk['end']:.2f}s  "
+                      f"({len(chunk['events'])} event{'s' if len(chunk['events']) > 1 else ''}: "
                       f"{', '.join(labels)})  → {final_new[1]}–{final_new[2]}")
                 clip = make_chunk_clip(
                     source, chunk, config, teams, bug_scale=opts["bugScale"]
@@ -626,7 +877,6 @@ class ExporterApp:
                 if clip is not None:
                     clips.append(clip)
 
-            # 5. Final screen
             if opts["finalDuration"] > 0:
                 print("  [final] final-score screen")
                 totals = final_totals(marks)
@@ -636,16 +886,7 @@ class ExporterApp:
                     teams_registry=teams_registry,
                 ))
 
-            # 6. Concatenate + write
-            #
-            # Rendering directly to the user's chosen output folder can fail
-            # when that folder is OneDrive-synced (Windows Documents, Desktop,
-            # Pictures on modern setups). OneDrive intercepts the file creation
-            # and the temp-audio file moviepy needs ends up Permission Denied.
-            # Workaround: render to the system temp dir, then move the finished
-            # file to the real destination as a single atomic operation.
-            import tempfile, shutil, uuid
-
+            # Render to temp first to dodge OneDrive write interception, then move.
             print("\nConcatenating clips…")
             final = concatenate_videoclips(clips, method="compose")
 
@@ -666,8 +907,7 @@ class ExporterApp:
                 temp_audiofile=temp_audio,
             )
 
-            # Move to the user's chosen destination
-            actual_out = opts["out"]
+            actual_out = job["out"]
             try:
                 out_dir = os.path.dirname(actual_out)
                 if out_dir:
@@ -686,7 +926,6 @@ class ExporterApp:
                 print(f"  {temp_render}")
                 actual_out = temp_render
 
-            # Cleanup stray temp audio (moviepy usually removes it, but belt+suspenders)
             for stray in (temp_audio,):
                 try:
                     if os.path.exists(stray):
@@ -694,42 +933,13 @@ class ExporterApp:
                 except OSError:
                     pass
 
-            # Cleanup
-            try:
-                source.close()
-            except Exception:
-                pass
+            return actual_out
+        finally:
             for c in clips:
                 try:
                     c.close()
                 except Exception:
                     pass
-
-            if downloaded and not opts["keepDownload"]:
-                try:
-                    os.remove(video_path)
-                    print(f"Cleaned up downloaded file: {video_path}")
-                except OSError:
-                    pass
-
-            print(f"\nDone → {actual_out}")
-            self.root.after(0, self._finish, True,
-                            f"Exported {len(entries)} clips to {actual_out}",
-                            actual_out)
-
-        except Exception as e:
-            tb = traceback.format_exc()
-            print(tb, file=sys.stderr)
-            self.root.after(0, self._finish, False, f"{type(e).__name__}: {e}")
-
-        finally:
-            sys.stdout = stdout_orig
-            sys.stderr = stderr_orig
-            try:
-                if source is not None:
-                    source.close()
-            except Exception:
-                pass
 
     # ----- Log pump ---------------------------------------------------
 
